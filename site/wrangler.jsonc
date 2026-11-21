@@ -1,0 +1,7 @@
+{
+  // The site is static: the built pages and their assets, served from Cloudflare.
+  "name": "bill-site",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./dist", "not_found_handling": "404-page" },
+  "routes": [{ "pattern": "bill.buildcord.dev", "custom_domain": true }]
+}

@@ -1,0 +1,164 @@
+@font-face {
+  font-family: "Inter Display";
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/InterDisplay-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter Display";
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/InterDisplay-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter Display";
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/InterDisplay-SemiBold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Iosevka";
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Iosevka-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Iosevka";
+  font-weight: 500 600;
+  font-display: swap;
+  src: url("/fonts/Iosevka-500.woff2") format("woff2");
+}
+
+/* The same values as tokens.stylex.ts, for the parts of the page that aren't React. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f7f7f5;
+  --frame: #f3f3f1;
+  --line: rgba(17, 18, 20, 0.08);
+  --line-strong: rgba(17, 18, 20, 0.16);
+  --text: #111214;
+  --text-dim: #55575d;
+  --text-faint: #8b8d93;
+  --accent: #5546f5;
+  --accent-hover: #4637e6;
+  --accent-soft: rgba(85, 70, 245, 0.09);
+  --accent-text: #4334d9;
+  --green: #17a34a;
+  --sans: "Inter Display", "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Iosevka", ui-monospace, "SF Mono", Menlo, monospace;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --page: 1280px;
+  --gutter: clamp(16px, 4vw, 40px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.page {
+  width: 100%;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* Rises in as it scrolls into view, where the browser supports scroll-driven animations. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  corner-shape: squircle;
+  font: 500 15px/1 var(--sans);
+  text-decoration: none;
+  transition:
+    background-color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.btn-secondary:hover {
+  background: var(--surface);
+}
+.btn svg {
+  transition: transform 200ms var(--ease);
+}
+.btn:hover svg {
+  transform: translateX(3px);
+}
+
+.mono {
+  font-family: var(--mono);
+}
