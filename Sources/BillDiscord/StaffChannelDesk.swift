@@ -37,7 +37,7 @@ public struct StaffChannelDesk: Desk {
 /// Discord identity only, for products without accounts to link.
 public struct DiscordOnlyIdentity: IdentityResolver {
     public init() {}
-    public func requester(discordId: String, name: String) async -> Requester { Requester(discordId: discordId, name: name) }
+    public func requester(discordId: String, name: String) async -> Requester? { Requester(discordId: discordId, name: name) }
 }
 
 /// No ticket channels.

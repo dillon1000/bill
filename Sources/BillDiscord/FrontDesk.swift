@@ -22,7 +22,8 @@ public protocol TicketDirectory: Sendable {
 
 /// Maps a Discord user to a requester, linking the product account when there is one.
 public protocol IdentityResolver: Sendable {
-    func requester(discordId: String, name: String) async -> Requester
+    /// Nil when Bill shouldn't answer this person at all, such as someone staff have banned from Bill.
+    func requester(discordId: String, name: String) async -> Requester?
 }
 
 /// Answers in ticket channels, help forum posts and DMs.
@@ -97,7 +98,9 @@ public actor FrontDesk {
         } else {
             return
         }
-        if let until = quiet[channel], until > Date(), !mentioned { return }
+        // A ticket says itself whether Bill is on it, so staff can hand it back; elsewhere Bill stays quiet a day after handing off.
+        let isTicket = if case .ticket = place { true } else { false }
+        if !isTicket, let until = quiet[channel], until > Date(), !mentioned { return }
 
         // Wait for the person to finish typing a burst of messages, then answer them together.
         pending[channel]?.cancel()
@@ -124,12 +127,12 @@ public actor FrontDesk {
     }
 
     func answer(channel: String, place: Place, requesterId: String, name: String) async {
+        guard let requester = await identity.requester(discordId: requesterId, name: name) else { return }
         let now = Date()
         let recent = (replies[requesterId] ?? []).filter { now.timeIntervalSince($0) < 3600 }
         guard recent.count < settings.hourlyLimit else { return }
         replies[requesterId] = recent + [now]
 
-        let requester = await identity.requester(discordId: requesterId, name: name)
         let surface: Surface, ticket: String?
         switch place {
         case let .ticket(t): (surface, ticket) = (.ticket, t.ref)
