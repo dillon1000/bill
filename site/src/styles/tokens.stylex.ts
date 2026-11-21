@@ -52,8 +52,8 @@ export const syntax = stylex.defineVars({
 });
 
 export const font = stylex.defineVars({
-  sans: '"Inter Display", "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif',
-  display: '"Inter Display", -apple-system, sans-serif',
+  sans: '"Scoutie Sans", -apple-system, "Helvetica Neue", Arial, sans-serif',
+  display: '"Geist Serif", Georgia, serif',
   mono: '"Iosevka", ui-monospace, "SF Mono", Menlo, monospace',
 });
 

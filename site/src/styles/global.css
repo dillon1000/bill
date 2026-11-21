@@ -1,20 +1,15 @@
+/* Scoutie Sans for text and Geist Serif for headings, both variable and OFL licensed, self-hosted from /fonts. */
 @font-face {
-  font-family: "Inter Display";
-  font-weight: 400;
+  font-family: "Scoutie Sans";
+  font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/InterDisplay-Regular.woff2") format("woff2");
+  src: url("/fonts/ScoutieSans-Variable.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Inter Display";
-  font-weight: 500;
+  font-family: "Geist Serif";
+  font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/InterDisplay-Medium.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Inter Display";
-  font-weight: 600;
-  font-display: swap;
-  src: url("/fonts/InterDisplay-SemiBold.woff2") format("woff2");
+  src: url("/fonts/GeistSerif-Variable.woff2") format("woff2");
 }
 @font-face {
   font-family: "Iosevka";
@@ -45,7 +40,8 @@
   --accent-soft: rgba(85, 70, 245, 0.09);
   --accent-text: #4334d9;
   --green: #17a34a;
-  --sans: "Inter Display", "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --sans: "Scoutie Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Geist Serif", Georgia, serif;
   --mono: "Iosevka", ui-monospace, "SF Mono", Menlo, monospace;
   --ease: cubic-bezier(0.23, 1, 0.32, 1);
   --page: 1280px;
@@ -78,6 +74,12 @@ body {
 
 a {
   color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
 }
 
 ::selection {

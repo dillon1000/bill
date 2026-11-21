@@ -1,7 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { AnimatePresence, motion as m, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import { color, font, radius, text } from "../styles/tokens.stylex";
+import { font, radius, text } from "../styles/tokens.stylex";
 
 type Outcome = "answered" | "handed off" | "closed" | "issue filed";
 
@@ -173,25 +173,26 @@ const s = stylex.create({
   thread: { position: "relative", minHeight: 440, fontFamily: font.sans },
   inner: { display: "grid", gap: 22 },
   row: { display: "grid", gridTemplateColumns: "36px minmax(0, 1fr)", gap: 14, alignItems: "start" },
-  avatar: { ...sq, display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: radius.md, backgroundColor: "#d77a3e", color: "#fff", fontWeight: 600, fontSize: text.md },
-  goose: { boxSizing: "border-box", padding: 5, backgroundColor: "rgba(255,255,255,0.9)", boxShadow: `inset 0 0 0 1px ${color.line}` },
-  name: { display: "block", fontSize: text.sm, fontWeight: 600, color: color.text, marginBottom: 4 },
-  billName: { color: color.accentText },
-  bubble: { margin: 0, fontSize: 22, lineHeight: 1.35, color: color.text },
+  // The thread sits on the iris hero, so it's drawn in white.
+  avatar: { ...sq, display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: radius.md, backgroundColor: "rgba(255,255,255,0.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)", color: "#fff", fontWeight: 600, fontSize: text.md },
+  goose: { boxSizing: "border-box", padding: 5, backgroundColor: "#fff", boxShadow: "0 6px 16px rgba(30,10,120,0.3)" },
+  name: { display: "block", fontSize: text.sm, fontWeight: 600, color: "rgba(255,255,255,0.75)", marginBottom: 4 },
+  billName: { color: "#fff" },
+  bubble: { margin: 0, fontSize: 24, lineHeight: 1.3, color: "#fff", textShadow: "0 1px 18px rgba(30,10,120,0.35)" },
   trace: { position: "relative", display: "grid", gap: 10, marginLeft: 17, paddingLeft: 30 },
-  rail: { position: "absolute", left: 0, top: -12, bottom: -12, width: 1, backgroundColor: color.lineStrong, transformOrigin: "50% 0" },
+  rail: { position: "absolute", left: 0, top: -12, bottom: -12, width: 1, backgroundColor: "rgba(255,255,255,0.4)", transformOrigin: "50% 0" },
   call: { position: "relative", display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "2px 10px", fontFamily: font.mono, fontSize: text.sm },
-  mark: { ...sq, position: "absolute", left: -34.5, top: 4, width: 9, height: 9, borderRadius: 3, backgroundColor: color.green, boxShadow: "0 0 0 4px rgba(255,255,255,0.9)" },
-  markHand: { backgroundColor: color.yellow },
-  markWrite: { backgroundColor: color.accent },
-  tool: { color: color.text, fontWeight: 600 },
-  scope: { color: color.textFaint },
-  got: { flexBasis: "100%", color: color.textDim, fontSize: 12 },
-  reply: { margin: 0, fontSize: 19, lineHeight: 1.45, color: color.text, maxWidth: 520 },
-  ghost: { color: "transparent" },
-  outcome: { ...sq, display: "inline-block", marginTop: 12, fontSize: 13, fontWeight: 500, padding: "3px 9px", borderRadius: radius.sm },
-  answered: { backgroundColor: color.accentSoft, color: color.accentText },
-  closed: { backgroundColor: color.greenSoft, color: "#0f6b31" },
-  handed: { backgroundColor: color.yellowSoft, color: "#7a5b00" },
-  issue: { backgroundColor: color.hover, color: color.textDim },
+  mark: { ...sq, position: "absolute", left: -34.5, top: 4, width: 9, height: 9, borderRadius: 3, backgroundColor: "#7dffa8", boxShadow: "0 0 12px rgba(125,255,168,0.8)" },
+  markHand: { backgroundColor: "#ffd95e", boxShadow: "0 0 12px rgba(255,217,94,0.8)" },
+  markWrite: { backgroundColor: "#fff", boxShadow: "0 0 12px rgba(255,255,255,0.9)" },
+  tool: { color: "#fff", fontWeight: 600 },
+  scope: { color: "rgba(255,255,255,0.55)" },
+  got: { flexBasis: "100%", color: "rgba(255,255,255,0.8)", fontSize: 12 },
+  reply: { margin: 0, fontSize: 19, lineHeight: 1.45, color: "#fff", maxWidth: 520, textShadow: "0 1px 18px rgba(30,10,120,0.35)" },
+  ghost: { color: "transparent", textShadow: "none" },
+  outcome: { ...sq, display: "inline-block", marginTop: 12, fontSize: 13, fontWeight: 600, padding: "4px 10px", borderRadius: radius.sm, color: "#fff", backdropFilter: "blur(8px)" },
+  answered: { backgroundColor: "rgba(255,255,255,0.2)" },
+  closed: { backgroundColor: "rgba(125,255,168,0.25)" },
+  handed: { backgroundColor: "rgba(255,217,94,0.28)" },
+  issue: { backgroundColor: "rgba(255,255,255,0.12)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.3)" },
 });

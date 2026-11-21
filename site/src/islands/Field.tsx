@@ -1,36 +1,40 @@
 import { useEffect, useRef } from "react";
 
 /*
- * The hero's background: lanes across the full width, with audit events flowing along them.
- * Calls arc to their results on another lane; every event leaves a short hash behind it.
+ * The hero's background: deep iris, with soft bands of light drifting across and fast streaks of light
+ * shooting through them. A few streaks carry an audit hash at their head.
  */
 
-const KINDS = [
-  { color: [85, 70, 245], weight: 5 }, // tool_call
-  { color: [23, 163, 74], weight: 5 }, // tool_result
-  { color: [59, 91, 240], weight: 3 }, // step
-  { color: [17, 18, 20], weight: 1.5 }, // started, reply
-  { color: [217, 58, 49], weight: 0.4 }, // denied
-] as const;
 const HEX = "0123456789abcdef";
+const hash = () => Array.from({ length: 8 }, () => HEX[Math.floor(Math.random() * 16)]).join("");
 
-interface Packet {
-  lane: number;
+interface Streak {
+  y: number;
   x: number;
+  length: number;
   speed: number;
-  kind: number;
-  size: number;
-  hash: string;
-  link?: { lane: number; x: number; born: number };
+  bright: number;
+  tint: [number, number, number];
+  /** Most streaks are out of focus; a few are sharp. */
+  sharp: boolean;
+  hash?: string;
+}
+interface Band {
+  y: number;
+  x: number;
+  rx: number;
+  ry: number;
+  speed: number;
+  alpha: number;
+  tint: [number, number, number];
 }
 
-const pickKind = () => {
-  const total = KINDS.reduce((n, k) => n + k.weight, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < KINDS.length; i++) if ((r -= KINDS[i]!.weight) <= 0) return i;
-  return 0;
-};
-const hash = () => Array.from({ length: 6 }, () => HEX[Math.floor(Math.random() * 16)]).join("");
+const TINTS: [number, number, number][] = [
+  [255, 255, 255],
+  [236, 232, 255],
+  [214, 205, 255],
+  [255, 240, 252],
+];
 
 export default function Field() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -39,114 +43,142 @@ export default function Field() {
     const el = canvas.current!;
     const ctx = el.getContext("2d")!;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let w = 0, h = 0, lanes = 0, gap = 0, frame = 0, visible = true, last = performance.now();
-    let packets: Packet[] = [];
+    let w = 0, h = 0, frame = 0, visible = true, last = performance.now();
+    let streaks: Streak[] = [];
+    let bands: Band[] = [];
 
-    const laneY = (i: number) => gap * (i + 1);
-    const spawn = (x?: number): Packet => {
-      const kind = pickKind();
-      const lane = Math.floor(Math.random() * lanes);
-      const p: Packet = { lane, x: x ?? -20 - Math.random() * w * 0.3, speed: 22 + Math.random() * 46, kind, size: kind === 3 ? 9 : 7, hash: hash() };
-      if (kind === 0 && Math.random() < 0.55) p.link = { lane: (lane + 1 + Math.floor(Math.random() * 2)) % lanes, x: 0, born: 0 };
-      return p;
+    const tint = () => TINTS[Math.floor(Math.random() * TINTS.length)]!;
+    const streak = (x?: number): Streak => {
+      const length = 160 + Math.random() * Math.min(900, w * 0.6);
+      const sharp = Math.random() < 0.18;
+      return {
+        y: Math.random() * h,
+        x: x ?? -Math.random() * w * 0.5,
+        length,
+        speed: sharp ? 380 + Math.random() * 420 : 90 + Math.random() * 300,
+        bright: 0.3 + Math.random() * 0.7,
+        tint: tint(),
+        sharp,
+        hash: sharp && Math.random() < 0.5 ? hash() : undefined,
+      };
     };
+    const band = (x?: number): Band => ({
+      y: h * (0.1 + Math.random() * 0.8),
+      x: x ?? -w * 0.6,
+      rx: w * (0.35 + Math.random() * 0.45),
+      ry: 30 + Math.random() * 90,
+      speed: 8 + Math.random() * 26,
+      alpha: 0.12 + Math.random() * 0.22,
+      tint: tint(),
+    });
+
     const resize = () => {
       const dpr = Math.min(devicePixelRatio || 1, 2);
       w = el.clientWidth;
       h = el.clientHeight;
-      el.width = w * dpr;
-      el.height = h * dpr;
+      el.width = Math.round(w * dpr);
+      el.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      lanes = Math.max(5, Math.round(h / 72));
-      gap = h / (lanes + 1);
-      const count = Math.round((w * lanes) / 170);
-      packets = Array.from({ length: count }, () => spawn(Math.random() * w));
-    };
-
-    const squircle = (x: number, y: number, s: number) => {
-      ctx.beginPath();
-      ctx.roundRect(x - s / 2, y - s / 2, s, s, s * 0.32);
-      ctx.fill();
+      streaks = Array.from({ length: Math.round((w * h) / 20000) }, () => streak(Math.random() * w * 1.3));
+      bands = Array.from({ length: 7 }, () => band(Math.random() * w));
     };
 
     const draw = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = reduced ? 0 : Math.min(0.05, (now - last) / 1000);
       last = now;
-      ctx.clearRect(0, 0, w, h);
 
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(17,18,20,0.08)";
-      for (let i = 0; i < lanes; i++) {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, "#7468ff");
+      sky.addColorStop(0.45, "#5a49f6");
+      sky.addColorStop(1, "#3f28d9");
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+
+      // Light adds up where it overlaps, as it would.
+      ctx.globalCompositeOperation = "lighter";
+      for (const b of bands) {
+        b.x += b.speed * dt;
+        if (b.x - b.rx > w) Object.assign(b, band());
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.scale(b.rx / b.ry, 1);
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, b.ry);
+        const [r, gg, bb] = b.tint;
+        g.addColorStop(0, `rgba(${r},${gg},${bb},${b.alpha})`);
+        g.addColorStop(1, `rgba(${r},${gg},${bb},0)`);
+        ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.moveTo(0, Math.round(laneY(i)) + 0.5);
-        ctx.lineTo(w, Math.round(laneY(i)) + 0.5);
-        ctx.stroke();
+        ctx.arc(0, 0, b.ry, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
 
-      ctx.font = '10px "Iosevka", ui-monospace, monospace';
-      for (const p of packets) {
-        if (!reduced) p.x += p.speed * dt;
-        const y = laneY(p.lane);
-        const [r, g, b] = KINDS[p.kind]!.color;
-        const fade = Math.min(1, Math.max(0, p.x / 120), Math.max(0, (w - p.x) / 120));
-
-        // The trail it leaves along its lane.
-        const tail = 60 + p.speed * 2.2;
-        const trail = ctx.createLinearGradient(p.x - tail, 0, p.x, 0);
-        trail.addColorStop(0, `rgba(${r},${g},${b},0)`);
-        trail.addColorStop(1, `rgba(${r},${g},${b},${0.5 * fade})`);
-        ctx.strokeStyle = trail;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(p.x - tail, y);
-        ctx.lineTo(p.x, y);
-        ctx.stroke();
-
-        // A call arcs to its result on another lane, then lets go.
-        if (p.link) {
-          if (!p.link.born && p.x > w * 0.15) p.link = { ...p.link, x: p.x, born: now };
-          if (p.link.born) {
-            const age = (now - p.link.born) / 1600;
-            if (age < 1) {
-              const y2 = laneY(p.link.lane);
-              ctx.strokeStyle = `rgba(${r},${g},${b},${0.55 * (1 - age) * fade})`;
-              ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.moveTo(p.x, y);
-              ctx.bezierCurveTo(p.x + 40, y, p.x + 20, y2, p.x + 60, y2);
-              ctx.stroke();
-              ctx.fillStyle = `rgba(23,163,74,${0.8 * (1 - age) * fade})`;
-              squircle(p.x + 60, y2, 6);
-            }
-          }
+      ctx.font = '11px "Iosevka", ui-monospace, monospace';
+      for (const s of streaks) {
+        s.x += s.speed * dt;
+        if (s.x - s.length > w) Object.assign(s, streak());
+        const [r, g, b] = s.tint;
+        const grad = ctx.createLinearGradient(s.x - s.length, 0, s.x, 0);
+        grad.addColorStop(0, `rgba(${r},${g},${b},0)`);
+        if (s.sharp) {
+          grad.addColorStop(0.75, `rgba(${r},${g},${b},${0.5 * s.bright})`);
+          grad.addColorStop(1, `rgba(${r},${g},${b},${s.bright})`);
+        } else {
+          grad.addColorStop(0.55, `rgba(${r},${g},${b},${s.bright})`);
+          grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
         }
-
-        ctx.fillStyle = `rgba(${r},${g},${b},${0.14 * fade})`;
-        squircle(p.x, y, p.size * 2.6);
-        ctx.fillStyle = `rgba(${r},${g},${b},${0.95 * fade})`;
-        squircle(p.x, y, p.size);
-        ctx.fillStyle = `rgba(17,18,20,${0.3 * fade})`;
-        ctx.fillText(p.hash, p.x - 44, y - 7);
+        ctx.strokeStyle = grad;
+        ctx.lineCap = "round";
+        // Three passes, wide and faint to thin and bright, read as motion blur.
+        const passes = s.sharp
+          ? ([
+              [12, 0.06],
+              [4, 0.16],
+              [1.2, 0.75],
+            ] as const)
+          : ([
+              [34, 0.04],
+              [16, 0.07],
+              [6, 0.1],
+            ] as const);
+        for (const [width, alpha] of passes) {
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = width;
+          ctx.beginPath();
+          ctx.moveTo(s.x - s.length, s.y);
+          ctx.lineTo(s.x, s.y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        if (s.hash) {
+          ctx.fillStyle = `rgba(255,255,255,${0.45 * s.bright})`;
+          ctx.fillText(s.hash, s.x + 8, s.y + 4);
+        }
       }
-      packets = packets.map((p) => (p.x > w + 40 ? spawn() : p));
+      ctx.globalCompositeOperation = "source-over";
       if (!reduced && visible) frame = requestAnimationFrame(draw);
     };
 
     resize();
-    const ro = new ResizeObserver(resize);
+    const restart = () => {
+      cancelAnimationFrame(frame);
+      last = performance.now();
+      frame = requestAnimationFrame(draw);
+    };
+    const ro = new ResizeObserver(() => {
+      resize();
+      restart();
+    });
     ro.observe(el);
     const io = new IntersectionObserver(([entry]) => {
       visible = !!entry?.isIntersecting && !document.hidden;
-      cancelAnimationFrame(frame);
-      last = performance.now();
-      if (visible || reduced) frame = requestAnimationFrame(draw);
+      if (visible || reduced) restart();
     });
     io.observe(el);
     const onVisibility = () => {
       visible = !document.hidden;
-      cancelAnimationFrame(frame);
-      last = performance.now();
-      if (visible) frame = requestAnimationFrame(draw);
+      if (visible) restart();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
@@ -157,5 +189,5 @@ export default function Field() {
     };
   }, []);
 
-  return <canvas ref={canvas} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />;
+  return <canvas ref={canvas} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", background: "#5a49f6" }} />;
 }
