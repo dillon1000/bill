@@ -54,7 +54,7 @@ swift run bill serve
 
 ## Using it in your product
 
-Depend on the package, then build a `Bill` with your own plugins: one for your accounts (tools bound to `conversation.requester`), a `Desk` for your ticket system, a `TicketDirectory` and an `IdentityResolver` for Discord. Your product prompt adds knowledge and rules; it can't loosen the core ones.
+Depend on the package, then build a `Bill` with your own plugins: one for your accounts (tools bound to `conversation.requester`), a `Desk` for your ticket system, a `TicketDirectory` and an `IdentityResolver` for Discord (returning nil for anyone Bill shouldn't answer). To keep Bill from handing someone off, leave `ticket:handoff` out of their scopes in your `Policy`. Your product prompt adds knowledge and rules; it can't loosen the core ones.
 
 ```swift
 let bill = Bill(
