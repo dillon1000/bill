@@ -2,10 +2,10 @@
 import Layout from "../layouts/Layout.astro";
 import Chain from "../islands/Chain.tsx";
 import Code from "../islands/Code.tsx";
-import Console from "../islands/Console.tsx";
 import Demo from "../islands/Demo.tsx";
+import Field from "../islands/Field.tsx";
 import Scopes from "../islands/Scopes.tsx";
-import Stream from "../islands/Stream.tsx";
+import Thread from "../islands/Thread.tsx";
 
 const repo = "https://github.com/dillon1000/bill";
 const headline = ["Save", "hours", "of", "support", "every", "week,", "with", "an", "agent", "you", "can", "audit."];
@@ -67,25 +67,22 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
 
   <main>
     <section class="hero" id="hero">
-      <div class="spot" aria-hidden="true"></div>
-      <div class="hero-lines" aria-hidden="true">{Array.from({ length: 5 }, (_, i) => <span style={`--i:${i}`} />)}</div>
-      <div class="page hero-copy">
-        <h1>
-          {headline.map((w, i) => <span class="word" style={`--i:${i}`}>{w} </span>)}
-        </h1>
-        <p class="lede">An open-source Swift agent that answers support from your docs, code and customer data. Every tool is scoped. Every step is logged.</p>
-        <div class="ctas">
-          <a class="btn btn-primary" href={repo}>Read the README <Fragment set:html={arrow} /></a>
-          <a class="btn btn-secondary" href="#demo">Watch the replays</a>
+      <div class="field"><Field client:load /></div>
+      <div class="veil" aria-hidden="true"></div>
+      <div class="page hero-grid">
+        <div class="hero-copy">
+          <h1>
+            {headline.map((w, i) => <span class="word" style={`--i:${i}`}>{w} </span>)}
+          </h1>
+          <p class="lede">An open-source Swift agent that answers support from your docs, code and customer data. Every tool is scoped. Every step is logged.</p>
+          <div class="ctas">
+            <a class="btn btn-primary" href={repo}>Read the README <Fragment set:html={arrow} /></a>
+            <a class="btn btn-secondary" href="#demo">Watch the replays</a>
+          </div>
         </div>
-      </div>
-      <div class="page stage">
-        <div class="tilt">
-          <Console client:load />
+        <div class="hero-thread">
+          <Thread client:load />
         </div>
-      </div>
-      <div class="stream">
-        <Stream client:idle />
       </div>
     </section>
 
@@ -210,16 +207,6 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
   </footer>
 </Layout>
 
-<script>
-  // The spotlight follows the pointer across the hero.
-  const hero = document.getElementById("hero");
-  hero?.addEventListener("pointermove", (e) => {
-    const r = hero.getBoundingClientRect();
-    hero.style.setProperty("--x", `${e.clientX - r.left}px`);
-    hero.style.setProperty("--y", `${e.clientY - r.top}px`);
-  });
-</script>
-
 <style>
   .top {
     position: sticky;
@@ -268,61 +255,46 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
   }
 
   .hero {
-    --x: 50%;
-    --y: 30%;
     position: relative;
-    padding: clamp(72px, 12vw, 152px) 0 56px;
+    display: flex;
+    align-items: center;
+    min-height: calc(100svh - 64px);
+    padding: clamp(56px, 8vw, 96px) 0;
     border-bottom: 1px solid var(--line);
     overflow: hidden;
     isolation: isolate;
   }
-  .spot {
+  .field {
     position: absolute;
     inset: 0;
-    z-index: -1;
-    background:
-      radial-gradient(520px circle at var(--x) var(--y), rgba(85, 70, 245, 0.1), transparent 70%),
-      radial-gradient(900px 420px at 50% 72%, rgba(85, 70, 245, 0.07), transparent 70%);
-    transition: background 120ms linear;
+    z-index: -2;
+    animation: word 1600ms var(--ease) 200ms both;
   }
-  .hero-lines {
+  /* Keeps the text readable over the moving field without boxing anything in. */
+  .veil {
     position: absolute;
     inset: 0;
     z-index: -1;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    max-width: var(--page);
-    margin: 0 auto;
-    padding: 0 var(--gutter);
     pointer-events: none;
-    mask-image: linear-gradient(to bottom, transparent, #000 15%, #000 55%, transparent 80%);
+    background:
+      radial-gradient(ellipse 40% 52% at 24% 50%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.45) 65%, transparent),
+      radial-gradient(ellipse 30% 50% at 74% 50%, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.35) 65%, transparent),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.7), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.85));
   }
-  .hero-lines span {
-    border-left: 1px solid var(--line);
-    transform-origin: top;
-    animation: draw 1.4s var(--ease) both;
-    animation-delay: calc(var(--i) * 90ms);
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: clamp(40px, 6vw, 96px);
+    align-items: center;
   }
-  .hero-lines span:last-child {
-    position: absolute;
-    right: var(--gutter);
-    top: 0;
-    bottom: 0;
-    border-left: 0;
-    border-right: 1px solid var(--line);
-  }
-  @keyframes draw {
-    from {
-      transform: scaleY(0);
+  @media (max-width: 1000px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
-  .hero-copy {
-    text-align: center;
-  }
   h1 {
-    margin: 0 auto 28px;
-    max-width: 1180px;
-    font-size: clamp(46px, 8vw, 112px);
+    margin: 0 0 28px;
+    font-size: clamp(44px, 4.8vw, 80px);
     line-height: 0.98;
     font-weight: 400;
   }
@@ -343,7 +315,7 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
     }
   }
   .lede {
-    margin: 0 auto 36px;
+    margin: 0 0 36px;
     max-width: 600px;
     font-size: clamp(17px, 1.6vw, 20px);
     line-height: 1.5;
@@ -353,54 +325,16 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
   .ctas {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: 12px;
+  }
+  .final .ctas {
+    justify-content: center;
   }
   .hero-copy .ctas {
     animation: word 900ms var(--ease) 920ms both;
   }
-
-  .stage {
-    margin-top: clamp(56px, 8vw, 96px);
-    perspective: 1600px;
-    animation: rise 1200ms var(--ease) 700ms both;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(80px);
-    }
-  }
-  .tilt {
-    max-width: 1100px;
-    margin: 0 auto;
-    transform-origin: 50% 0;
-    transform: rotateX(14deg) scale(0.94);
-    transition: transform 600ms var(--ease);
-  }
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .tilt {
-        transition: none;
-        animation: untilt linear both;
-        animation-timeline: view();
-        animation-range: entry 0% cover 45%;
-      }
-    }
-  }
-  @supports not (animation-timeline: view()) {
-    .tilt {
-      transform: none;
-    }
-  }
-  @keyframes untilt {
-    to {
-      transform: rotateX(0) scale(1);
-    }
-  }
-  .stream {
-    margin-top: 48px;
-    animation: word 900ms var(--ease) 1300ms both;
+  .hero-thread {
+    animation: word 1100ms var(--ease) 600ms both;
   }
 
   .section {
@@ -593,13 +527,9 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
     .word,
     .lede,
     .ctas,
-    .stage,
-    .stream,
-    .hero-lines span {
+    .field,
+    .hero-thread {
       animation: none !important;
-    }
-    .tilt {
-      transform: none;
     }
   }
 </style>
