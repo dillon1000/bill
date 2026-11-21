@@ -7,7 +7,7 @@ import Queue from "../islands/Queue.tsx";
 import Scopes from "../islands/Scopes.tsx";
 
 const repo = "https://github.com/dillon1000/bill";
-const headline = ["An", "open-source", "support", "agent", "you", "can", "audit."];
+const headline = ["Save", "hours", "of", "support", "every", "week,", "with", "an", "agent", "you", "can", "audit."];
 
 const reads = [
   { title: "Docs", body: "Any site that publishes llms-full.txt. Fetched once an hour, split into pages and searched by term.", detail: "DocsPlugin" },
@@ -312,7 +312,7 @@ const primitives = [
   }
   h1 {
     margin: 0 0 28px;
-    font-size: clamp(44px, 6.6vw, 84px);
+    font-size: clamp(40px, 5.4vw, 72px);
     line-height: 1.02;
     font-weight: 400;
   }
@@ -322,7 +322,7 @@ const primitives = [
     animation: word 900ms var(--ease) both;
     animation-delay: calc(120ms + var(--i) * 70ms);
   }
-  .word:nth-child(n + 5) {
+  .word:nth-child(n + 7) {
     color: var(--text-dim);
   }
   @keyframes word {
