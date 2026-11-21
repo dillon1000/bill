@@ -26,21 +26,24 @@ public protocol IdentityResolver: Sendable {
     func requester(discordId: String, name: String) async -> Requester?
 }
 
-/// Answers in ticket channels, help forum posts and DMs.
+/// Answers in ticket channels, help forum posts, DMs, and any channel where someone mentions Bill.
 public actor FrontDesk {
     public struct Settings: Sendable {
         public var guildId: String
         /// Forum channels whose posts Bill answers.
         public var forums: Set<String>
         public var allowDMs: Bool
+        /// Answer anyone who mentions Bill, or replies to it, in the server's other channels.
+        public var answerMentions: Bool
         /// Pinged on a hand-off. The only mention Bill ever makes.
         public var handOffRole: String?
         /// Replies a person can get an hour, across all surfaces.
         public var hourlyLimit: Int
-        public init(guildId: String, forums: Set<String>, allowDMs: Bool, handOffRole: String?, hourlyLimit: Int = 30) {
+        public init(guildId: String, forums: Set<String>, allowDMs: Bool, answerMentions: Bool = true, handOffRole: String?, hourlyLimit: Int = 30) {
             self.guildId = guildId
             self.forums = forums
             self.allowDMs = allowDMs
+            self.answerMentions = answerMentions
             self.handOffRole = handOffRole
             self.hourlyLimit = hourlyLimit
         }
@@ -67,7 +70,7 @@ public actor FrontDesk {
         self.logger = logger
     }
 
-    enum Place { case ticket(TicketInfo), forum(owner: String), dm }
+    enum Place { case ticket(TicketInfo), forum(owner: String), dm, channel(asker: String, message: String) }
 
     public func handle(_ event: Gateway.Event) async {
         switch event.data {
@@ -95,6 +98,8 @@ public actor FrontDesk {
         } else if let thread = await thread(channel), let parent = thread.parent, settings.forums.contains(parent), let owner = thread.owner {
             guard author.id.rawValue == owner || mentioned else { return }
             place = .forum(owner: owner)
+        } else if settings.answerMentions, mentioned || m.referenced_message?.value.author?.id.rawValue == me {
+            place = .channel(asker: author.id.rawValue, message: m.id.rawValue)
         } else {
             return
         }
@@ -103,15 +108,18 @@ public actor FrontDesk {
         if !isTicket, let until = quiet[channel], until > Date(), !mentioned { return }
 
         // Wait for the person to finish typing a burst of messages, then answer them together.
-        pending[channel]?.cancel()
         let requesterId: String =
             switch place {
             case let .ticket(t): t.openerDiscordId
             case let .forum(owner): owner
             case .dm: author.id.rawValue
+            case let .channel(asker, _): asker
             }
+        // A shared channel has many askers; one person's burst mustn't cancel another's answer.
+        let key = if case .channel = place { "\(channel):\(requesterId)" } else { channel }
+        pending[key]?.cancel()
         let name = m.member?.nick ?? author.global_name ?? author.username
-        pending[channel] = Task { [weak self] in
+        pending[key] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
             await self?.answer(channel: channel, place: place, requesterId: requesterId, name: name)
@@ -133,11 +141,12 @@ public actor FrontDesk {
         guard recent.count < settings.hourlyLimit else { return }
         replies[requesterId] = recent + [now]
 
-        let surface: Surface, ticket: String?
+        let surface: Surface, ticket: String?, replyTo: String?
         switch place {
-        case let .ticket(t): (surface, ticket) = (.ticket, t.ref)
-        case .forum: (surface, ticket) = (.forum, nil)
-        case .dm: (surface, ticket) = (.dm, nil)
+        case let .ticket(t): (surface, ticket, replyTo) = (.ticket, t.ref, nil)
+        case .forum: (surface, ticket, replyTo) = (.forum, nil, nil)
+        case .dm: (surface, ticket, replyTo) = (.dm, nil, nil)
+        case let .channel(_, message): (surface, ticket, replyTo) = (.channel, nil, message)
         }
         let typing = Task {
             while !Task.isCancelled {
@@ -155,7 +164,11 @@ public actor FrontDesk {
                 let content = index == 0 && ping != nil ? "<@&\(ping!)> \(chunk)" : chunk
                 try await client.createMessage(
                     channelId: ChannelSnowflake(channel),
-                    payload: .init(content: content, allowed_mentions: .init(parse: [], roles: ping.map { [RoleSnowflake($0)] } ?? []))
+                    payload: .init(
+                        content: content,
+                        allowed_mentions: .init(parse: [], roles: ping.map { [RoleSnowflake($0)] } ?? []),
+                        message_reference: index == 0 ? replyTo.map { .init(message_id: MessageSnowflake($0), fail_if_not_exists: false) } : nil
+                    )
                 ).guardSuccess()
             }
         } catch {
@@ -165,7 +178,7 @@ public actor FrontDesk {
 
     /// The channel's recent messages, oldest first.
     func history(channel: String, requesterId: String, surface: Surface) async throws -> [Turn] {
-        let messages = try await client.listMessages(channelId: ChannelSnowflake(channel), limit: 50).decode()
+        let messages = try await client.listMessages(channelId: ChannelSnowflake(channel), limit: surface == .channel ? 20 : 50).decode()
         return messages.reversed().compactMap { m -> Turn? in
             guard !m.content.isEmpty, let user = m.author else { return nil }
             let id = user.id.rawValue

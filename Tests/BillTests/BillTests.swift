@@ -167,13 +167,16 @@ func conversations(_ provider: FakeProvider, _ port: Int) async throws {
     _ = try await bill.respond(to: Conversation(id: "web:1", surface: .web, requester: Requester(accountId: "consenting", name: "C"), turns: [Turn(author: .requester, name: "C", text: "hi")]))
     #expect(toolNames(await provider.requests.last!).contains("account_detail"))
 
-    // A public forum post never reads the account, and has no ticket to triage or close.
-    await provider.setScript([FakeProvider.text("ok")])
-    _ = try await bill.respond(to: Conversation(id: "discord:200", surface: .forum, requester: alice, turns: [Turn(author: .requester, name: "Alice", text: "hi")]))
-    requests = await provider.requests
-    #expect(toolNames(requests.last!) == ["leaky_docs", "hand_off"])
-    let forumSystem = requests.last!["messages"]?.array?.first?["content"]?.string ?? ""
-    #expect(!forumSystem.contains("Plan: free"), "\(forumSystem.suffix(400))")
+    // A public forum post or channel never reads the account, and has no ticket to triage or close.
+    for surface in [Surface.forum, .channel] {
+        await provider.setScript([FakeProvider.text("ok")])
+        _ = try await bill.respond(to: Conversation(id: "discord:200", surface: surface, requester: alice, turns: [Turn(author: .requester, name: "Alice", text: "hi")]))
+        requests = await provider.requests
+        #expect(toolNames(requests.last!) == ["leaky_docs", "hand_off"])
+        let publicSystem = requests.last!["messages"]?.array?.first?["content"]?.string ?? ""
+        #expect(!publicSystem.contains("Plan: free"), "\(publicSystem.suffix(400))")
+        #expect(publicSystem.contains("public"))
+    }
 
     // Nobody linked: no account tools either.
     await provider.setScript([FakeProvider.text("ok")])

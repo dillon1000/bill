@@ -41,8 +41,9 @@ public struct SurfacePolicy: Policy {
         .ticket: [.readDocs, .readCode, .readHistory, .readAccount, .readAccountDetail, .handOff, .triage, .closeTicket, .fileIssue],
         .dm: [.readDocs, .readCode, .readHistory, .readAccount, .readAccountDetail, .handOff, .fileIssue],
         .web: [.readDocs, .readCode, .readHistory, .readAccount, .readAccountDetail, .handOff, .fileIssue],
-        // A forum post is public: nothing about the poster's account may be read into it.
+        // Forum posts and channels are public: nothing about the asker's account may be read into them.
         .forum: [.readDocs, .readCode, .handOff, .fileIssue],
+        .channel: [.readDocs, .readCode, .handOff, .fileIssue],
     ]
 
     public func scopes(for conversation: Conversation) async -> Set<Scope> {

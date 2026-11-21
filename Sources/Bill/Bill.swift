@@ -131,6 +131,7 @@ public struct Bill: Sendable {
         switch surface {
         case .ticket: "A private ticket channel the requester and the support team can see."
         case .forum: "A public help forum post anyone can read. Don't discuss the requester's account here; for anything personal, ask them to open a ticket."
+        case .channel: "A public server channel where the requester mentioned you; other people talk here too. Answer the requester briefly. Don't discuss their account here; for anything personal, ask them to open a ticket."
         case .dm: "A private direct message."
         case .web: "A chat inside the product. The requester is signed in."
         }

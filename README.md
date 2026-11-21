@@ -1,6 +1,6 @@
 # Bill
 
-An AI support agent for Discord and the web, in Swift on Vapor. Bill answers in ticket channels, help forum posts, DMs and an in-product chat. It reads your docs, your code, pull requests and issues on GitHub, and (through your own plugin) the asking person's account. It can hand off to a human, triage and close tickets, and file GitHub issues. Every step it takes is written to a hash-chained audit log first.
+An AI support agent for Discord and the web, in Swift on Vapor. Bill answers in ticket channels, help forum posts, DMs, any channel where someone @mentions it, and an in-product chat. It reads your docs, your code, pull requests and issues on GitHub, and (through your own plugin) the asking person's account. It can hand off to a human, triage and close tickets, and file GitHub issues. Every step it takes is written to a hash-chained audit log first.
 
 Built for [Buildcord](https://buildcord.dev), and written to be used by anyone.
 
@@ -11,13 +11,13 @@ Built for [Buildcord](https://buildcord.dev), and written to be used by anyone.
 | `BillAI` | A Swift port of the [Vercel AI SDK](https://ai-sdk.dev)'s core: `generateText` with a tool loop, `stopWhen` (`stepCountIs`, `hasToolCall`), `prepareStep`, `onStepFinish`, typed tools with JSON Schema, tool errors returned to the model, `pruneMessages`, and an OpenAI-compatible provider (OpenRouter by default). |
 | `Bill` | The agent: the hard system prompt, scopes and policy, plugins, the help desk interface, secret redaction, the audit log (JSON lines or Postgres), and a docs plugin for any site with an `llms-full.txt`. |
 | `BillGitHub` | A GitHub App narrowed to one repository: code search, file reads, directory listings, recent commits, pull requests and issues, and filing issues. Paths such as `.env`, keys and workflows are always off limits, plus any you add. |
-| `BillDiscord` | The front desk: answers in tickets, forum posts and DMs, waits for a burst of messages to finish, shows typing, splits long replies, never mentions anyone but the hand-off role, and limits replies per person per hour. |
+| `BillDiscord` | The front desk: answers in tickets, forum posts, DMs and @mentions (replying to the message), waits for a burst of messages to finish, shows typing, splits long replies, never mentions anyone but the hand-off role, and limits replies per person per hour. |
 | `BillServer` | `GET /health` and `POST /v1/chat`, for your product to call on behalf of a signed-in person. |
 | `bill` | A complete example that runs all of the above. |
 
 ## Least privilege
 
-- **Scopes.** Every tool declares a scope. A `Policy` grants a conversation its scopes from where it happens and who's asking. A tool outside them isn't offered to the model, and a call to it is refused and audited. The default `SurfacePolicy` reads account data only in private places, detailed data only with the person's consent, and never in a public forum post.
+- **Scopes.** Every tool declares a scope. A `Policy` grants a conversation its scopes from where it happens and who's asking. A tool outside them isn't offered to the model, and a call to it is refused and audited. The default `SurfacePolicy` reads account data only in private places, detailed data only with the person's consent, and never in a public forum post or channel.
 - **Bound tools.** Plugins build their tools for one conversation, bound to its requester. No tool takes a user id, so Bill can't be talked into reading someone else's data.
 - **GitHub.** The installation token is requested for one repository with `contents`, `pull_requests` and `metadata` read, and `issues` write only if you allow it.
 - **Discord.** Intents are Guilds, Guild Messages, Message Content and Direct Messages. Permissions are View Channel, Send Messages, Send Messages in Threads and Read Message History.
@@ -43,6 +43,7 @@ swift run bill serve
 | `DISCORD_TOKEN`, `DISCORD_GUILD_ID` | The bot and its server |
 | `DISCORD_FORUM_IDS` | Comma-separated help forums to answer in |
 | `DISCORD_DMS` | `false` to ignore DMs |
+| `DISCORD_MENTIONS` | `false` to ignore @mentions outside tickets and forums |
 | `DISCORD_SUPPORT_ROLE_ID` | Pinged on a hand-off |
 | `STAFF_CHANNEL_ID` | Where hand-offs, triage and closures are posted |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_INSTALLATION_ID` | The GitHub App |
