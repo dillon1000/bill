@@ -139,10 +139,11 @@ export default function Chain() {
 const sq = { cornerShape: "squircle" } as const;
 
 const s = stylex.create({
-  wrap: { display: "grid", gap: 16, fontFamily: font.sans },
+  wrap: { display: "grid", gap: 16, fontFamily: font.sans, color: color.text },
   status: { ...sq, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 44, padding: "8px 8px 8px 14px", borderRadius: radius.lg, fontFamily: font.mono, fontSize: text.sm, transitionProperty: "background-color, color", transitionDuration: "240ms" },
-  statusOk: { backgroundColor: color.greenSoft, color: "#0f6b31" },
-  statusBad: { backgroundColor: color.redSoft, color: color.redText },
+  // Opaque, so the status reads on any section background.
+  statusOk: { backgroundColor: "#e5f6eb", color: "#0f6b31" },
+  statusBad: { backgroundColor: "#fdebea", color: color.redText },
   list: { listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: { default: "repeat(5, minmax(0, 1fr))", "@media (max-width: 1000px)": "1fr" }, gap: { default: 20, "@media (max-width: 1000px)": 14 } },
   card: { ...sq, position: "relative", display: "grid", gap: 12, alignContent: "start", padding: 14, borderRadius: radius.lg, backgroundColor: color.bg, boxShadow: `0 0 0 1px ${color.line}`, transitionProperty: "box-shadow", transitionDuration: "200ms" },
   cardBad: { boxShadow: `0 0 0 1px ${color.redLine}, 0 0 0 4px ${color.redSoft}` },
