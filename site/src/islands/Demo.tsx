@@ -59,7 +59,7 @@ export default function Demo() {
     setPlaying(true);
   };
 
-  const beats = scenario.beats.slice(0, shown);
+  const beats = useMemo(() => scenario.beats.slice(0, shown), [scenario, shown]);
   const lastMessage = beats.findLastIndex((b) => b.type === "message");
   const lastTyping = beats.findLastIndex((b) => b.type === "typing");
   const typing = lastTyping > lastMessage ? (beats[lastTyping] as Extract<Beat, { type: "typing" }>) : null;
@@ -181,7 +181,7 @@ function Markdown({ source }: { source: string }) {
 }
 
 function Trace({ beats }: { beats: Beat[] }) {
-  const rows = beats.filter((b): b is Audit | Extract<Beat, { type: "note" }> => b.type === "audit" || b.type === "note");
+  const rows = useMemo(() => beats.filter((b): b is Audit | Extract<Beat, { type: "note" }> => b.type === "audit" || b.type === "note"), [beats]);
   const audits = useMemo(() => rows.filter((r): r is Audit => r.type === "audit"), [rows]);
   const [hashes, setHashes] = useState<{ previous: string; hash: string }[]>([]);
   useEffect(() => {
