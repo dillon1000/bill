@@ -86,7 +86,7 @@ export default function Demo() {
         <m.div {...stylex.props(s.progress)} animate={{ scaleX: shown / scenario.beats.length }} transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }} />
       </div>
       <div {...stylex.props(s.panes)}>
-        <Channel name={scenario.channel} dm={scenario.surface === "dm"} beats={beats} typing={typing} />
+        <Channel name={scenario.channel} surface={scenario.surface} beats={beats} typing={typing} />
         <Trace key={scenario.id} beats={beats} />
       </div>
     </div>
@@ -104,7 +104,10 @@ function useStickToBottom(dep: unknown) {
 
 const enter = { initial: { opacity: 0, y: 10, filter: "blur(3px)" }, animate: { opacity: 1, y: 0, filter: "blur(0px)" }, transition: { duration: 0.42, ease: [0.23, 1, 0.32, 1] as const } };
 
-function Channel({ name, dm, beats, typing }: { name: string; dm: boolean; beats: Beat[]; typing: { name: string } | null }) {
+const surfaceNote = { ticket: "Private to the person and the support team", forum: "Public: anyone can read it", dm: "Private" } as const;
+
+function Channel({ name, surface, beats, typing }: { name: string; surface: keyof typeof surfaceNote; beats: Beat[]; typing: { name: string } | null }) {
+  const dm = surface === "dm";
   const messages = beats.filter((b): b is Extract<Beat, { type: "message" }> => b.type === "message");
   const scroller = useStickToBottom(messages.length + (typing ? 0.5 : 0));
   return (
@@ -112,7 +115,7 @@ function Channel({ name, dm, beats, typing }: { name: string; dm: boolean; beats
       <header {...stylex.props(s.paneHead)}>
         {dm ? <span {...stylex.props(s.headIcon)}>@</span> : <HashIcon size={15} {...stylex.props(s.headIconSvg)} />}
         <span {...stylex.props(s.paneTitle)}>{name}</span>
-        <span {...stylex.props(s.paneSub)}>{dm ? "Private" : "The person and the Support Team"}</span>
+        <span {...stylex.props(s.paneSub)}>{surfaceNote[surface]}</span>
       </header>
       <div ref={scroller} {...stylex.props(s.scroll)}>
         <AnimatePresence initial={false}>
@@ -124,7 +127,7 @@ function Channel({ name, dm, beats, typing }: { name: string; dm: boolean; beats
                   <span {...stylex.props(s.msgName, msg.who === "bill" && s.billName)}>{msg.name}</span>
                   {msg.who === "bill" && <span {...stylex.props(s.app)}>App</span>}
                 </div>
-                <div {...stylex.props(s.msgText)}>
+                <div {...stylex.props(s.msgText, msg.who === "system" && s.systemText)}>
                   {msg.mention && <span {...stylex.props(s.mention)}>@{msg.mention}</span>} <Markdown source={msg.text} />
                 </div>
               </div>
@@ -147,7 +150,8 @@ function Channel({ name, dm, beats, typing }: { name: string; dm: boolean; beats
 }
 
 function Avatar({ who, name }: { who: string; name: string }) {
-  return <span {...stylex.props(s.avatar, who === "bill" ? s.avatarBill : who === "staff" ? s.avatarStaff : s.avatarPerson)}>{who === "bill" ? "b" : name[0]}</span>;
+  if (who === "bill") return <img src="/goose.svg" alt="" width={34} height={34} {...stylex.props(s.avatar, s.avatarBill)} />;
+  return <span {...stylex.props(s.avatar, who === "staff" ? s.avatarStaff : who === "system" ? s.avatarSystem : s.avatarPerson)}>{who === "system" ? "✓" : name[0]}</span>;
 }
 
 /** Just enough Markdown for Bill's replies: paragraphs, numbered steps, bold, links and #channels. */
@@ -241,7 +245,7 @@ function Total({ label, value, money }: { label: string; value: number; money?: 
 
 function Row({ audit, link, first }: { audit: Audit; link?: { previous: string; hash: string }; first: boolean }) {
   const [open, setOpen] = useState(audit.kind === "tool_result");
-  const summary = audit.kind === "step" ? stepSummary(audit.data) : audit.kind === "started" ? `${(audit.data.scopes as string[]).length} scopes` : audit.kind === "reply" ? replySummary(audit.data) : canonical(audit.data.input ?? audit.data.output ?? {});
+  const summary = audit.kind === "step" ? stepSummary(audit.data) : audit.kind === "started" ? `${(audit.data.scopes as string[]).length} scopes` : audit.kind === "reply" ? replySummary(audit.data) : audit.kind === "denied" ? "not granted here, didn't run" : canonical(audit.data.input ?? audit.data.output ?? {});
   return (
     <m.div {...enter} {...stylex.props(s.row)}>
       <div {...stylex.props(s.rail)}>
@@ -370,13 +374,15 @@ const s = stylex.create({
   traceScroll: { gap: 4, padding: "14px 12px 18px" },
   msg: { display: "grid", gridTemplateColumns: "34px 1fr", gap: 12 },
   avatar: { ...sq, width: 34, height: 34, borderRadius: radius.md, display: "grid", placeItems: "center", fontWeight: 600, fontSize: text.md, color: "#fff" },
-  avatarBill: { backgroundColor: color.accent, fontFamily: font.mono, fontSize: 18 },
+  avatarBill: { boxSizing: "border-box", padding: 5, backgroundColor: color.surface, boxShadow: `inset 0 0 0 1px ${color.line}` },
   avatarPerson: { backgroundColor: "#d77a3e" },
   avatarStaff: { backgroundColor: "#2f8f6b" },
+  avatarSystem: { backgroundColor: color.textFaint },
   msgBody: { minWidth: 0 },
   msgHead: { display: "flex", alignItems: "center", gap: 6, marginBottom: 2 },
   msgName: { fontWeight: 600, fontSize: text.base },
   billName: { color: color.accentText },
+  systemText: { color: color.textDim },
   app: { ...sq, fontSize: 11, fontWeight: 600, padding: "1px 5px", borderRadius: 4, backgroundColor: color.accent, color: color.onAccent },
   msgText: { fontSize: text.base, lineHeight: 1.55, color: color.text, overflowWrap: "anywhere" },
   mention: { ...sq, padding: "0 3px", borderRadius: 4, backgroundColor: color.accentSoft, color: color.accentText, fontWeight: 500 },
@@ -397,6 +403,7 @@ const s = stylex.create({
   mark_tool_call: { backgroundColor: color.accent },
   mark_tool_result: { backgroundColor: color.green },
   mark_reply: { backgroundColor: color.text },
+  mark_denied: { backgroundColor: color.red },
   rowMain: { minWidth: 0, paddingBottom: 6 },
   rowHead: {
     ...sq,
@@ -422,6 +429,7 @@ const s = stylex.create({
   kind_tool_call: { color: color.accentText },
   kind_tool_result: { color: color.green },
   kind_reply: {},
+  kind_denied: { color: color.redText },
   tool: { fontWeight: 600, flexShrink: 0 },
   scope: { color: color.textFaint, flexShrink: 0, display: { default: "inline", "@media (max-width: 1100px)": "none" } },
   summary: { color: color.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },

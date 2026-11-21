@@ -20,7 +20,7 @@ const groups: { scope: string; tools: string[]; from: string }[] = [
   { scope: "code:read", tools: ["search_code", "read_file", "list_directory", "recent_changes", "search_pull_requests", "read_pull_request", "search_issues"], from: "GitHubPlugin" },
   { scope: "account:read", tools: ["my_account"], from: "Your plugin" },
   { scope: "history:read", tools: ["my_support_history"], from: "Your plugin" },
-  { scope: "account:detail", tools: ["bot_runs"], from: "Your plugin" },
+  { scope: "account:detail", tools: ["recent_errors"], from: "Your plugin" },
   { scope: "ticket:handoff", tools: ["hand_off"], from: "DeskPlugin" },
   { scope: "ticket:triage", tools: ["triage_ticket"], from: "DeskPlugin" },
   { scope: "ticket:close", tools: ["close_ticket"], from: "DeskPlugin" },

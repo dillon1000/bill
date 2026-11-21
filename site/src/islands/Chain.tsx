@@ -20,9 +20,9 @@ interface Event extends Fields {
 
 const seed: Fields[] = [
   { kind: "started", tool: null, field: "model", value: "openai/gpt-6-luna" },
-  { kind: "tool_call", tool: "bot_runs", field: "bot", value: "Greeter" },
-  { kind: "tool_result", tool: "bot_runs", field: "error", value: "Missing Permissions (50013)" },
-  { kind: "tool_call", tool: "close_ticket", field: "confirmation", value: "works now, thank you" },
+  { kind: "tool_call", tool: "recent_errors", field: "device", value: "Pixel 8" },
+  { kind: "tool_result", tool: "recent_errors", field: "code", value: "401 token_expired" },
+  { kind: "tool_call", tool: "close_ticket", field: "confirmation", value: "it's syncing, thanks" },
   { kind: "reply", tool: null, field: "closed", value: "true" },
 ];
 
