@@ -1,0 +1,191 @@
+import Bill
+import DiscordBM
+import Foundation
+import Logging
+
+/// A support ticket channel, as the help desk sees it.
+public struct TicketInfo: Sendable {
+    public var ref: String
+    public var openerDiscordId: String
+    /// False once a person has claimed the ticket or Bill handed it off. Bill then answers only when mentioned.
+    public var billActive: Bool
+    public init(ref: String, openerDiscordId: String, billActive: Bool) {
+        self.ref = ref
+        self.openerDiscordId = openerDiscordId
+        self.billActive = billActive
+    }
+}
+
+public protocol TicketDirectory: Sendable {
+    func ticket(channel: String) async -> TicketInfo?
+}
+
+/// Maps a Discord user to a requester, linking the product account when there is one.
+public protocol IdentityResolver: Sendable {
+    func requester(discordId: String, name: String) async -> Requester
+}
+
+/// Answers in ticket channels, help forum posts and DMs.
+public actor FrontDesk {
+    public struct Settings: Sendable {
+        public var guildId: String
+        /// Forum channels whose posts Bill answers.
+        public var forums: Set<String>
+        public var allowDMs: Bool
+        /// Pinged on a hand-off. The only mention Bill ever makes.
+        public var handOffRole: String?
+        /// Replies a person can get an hour, across all surfaces.
+        public var hourlyLimit: Int
+        public init(guildId: String, forums: Set<String>, allowDMs: Bool, handOffRole: String?, hourlyLimit: Int = 30) {
+            self.guildId = guildId
+            self.forums = forums
+            self.allowDMs = allowDMs
+            self.handOffRole = handOffRole
+            self.hourlyLimit = hourlyLimit
+        }
+    }
+
+    let bill: Bill
+    let client: any DiscordClient
+    let settings: Settings
+    let tickets: any TicketDirectory
+    let identity: any IdentityResolver
+    let logger: Logger
+    var me: String?
+    var parents: [String: (parent: String?, owner: String?)] = [:]
+    var pending: [String: Task<Void, Never>] = [:]
+    var quiet: [String: Date] = [:]
+    var replies: [String: [Date]] = [:]
+
+    public init(bill: Bill, client: any DiscordClient, settings: Settings, tickets: any TicketDirectory, identity: any IdentityResolver, logger: Logger) {
+        self.bill = bill
+        self.client = client
+        self.settings = settings
+        self.tickets = tickets
+        self.identity = identity
+        self.logger = logger
+    }
+
+    enum Place { case ticket(TicketInfo), forum(owner: String), dm }
+
+    public func handle(_ event: Gateway.Event) async {
+        switch event.data {
+        case let .ready(ready): me = ready.user.id.rawValue
+        case let .messageCreate(message): await received(message)
+        default: break
+        }
+    }
+
+    func received(_ m: Gateway.MessageCreate) async {
+        guard let author = m.author, author.bot != true, m.webhook_id == nil, !m.content.isEmpty, let me else { return }
+        let channel = m.channel_id.rawValue
+        let mentioned = m.mentions.contains { $0.id.rawValue == me }
+        let place: Place
+        if m.guild_id == nil {
+            guard settings.allowDMs else { return }
+            place = .dm
+        } else if m.guild_id?.rawValue != settings.guildId {
+            return
+        } else if let ticket = await tickets.ticket(channel: channel) {
+            guard author.id.rawValue == ticket.openerDiscordId || mentioned, ticket.billActive || mentioned else { return }
+            place = .ticket(ticket)
+        } else if let thread = await thread(channel), let parent = thread.parent, settings.forums.contains(parent), let owner = thread.owner {
+            guard author.id.rawValue == owner || mentioned else { return }
+            place = .forum(owner: owner)
+        } else {
+            return
+        }
+        if let until = quiet[channel], until > Date(), !mentioned { return }
+
+        // Wait for the person to finish typing a burst of messages, then answer them together.
+        pending[channel]?.cancel()
+        let requesterId: String =
+            switch place {
+            case let .ticket(t): t.openerDiscordId
+            case let .forum(owner): owner
+            case .dm: author.id.rawValue
+            }
+        let name = m.member?.nick ?? author.global_name ?? author.username
+        pending[channel] = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await self?.answer(channel: channel, place: place, requesterId: requesterId, name: name)
+        }
+    }
+
+    func thread(_ channel: String) async -> (parent: String?, owner: String?)? {
+        if let known = parents[channel] { return known }
+        guard let c = try? await client.getChannel(id: ChannelSnowflake(channel)).decode() else { return nil }
+        let entry = (parent: c.type == .publicThread ? c.parent_id?.rawValue : nil, owner: c.owner_id?.rawValue)
+        parents[channel] = entry
+        return entry
+    }
+
+    func answer(channel: String, place: Place, requesterId: String, name: String) async {
+        let now = Date()
+        let recent = (replies[requesterId] ?? []).filter { now.timeIntervalSince($0) < 3600 }
+        guard recent.count < settings.hourlyLimit else { return }
+        replies[requesterId] = recent + [now]
+
+        let requester = await identity.requester(discordId: requesterId, name: name)
+        let surface: Surface, ticket: String?
+        switch place {
+        case let .ticket(t): (surface, ticket) = (.ticket, t.ref)
+        case .forum: (surface, ticket) = (.forum, nil)
+        case .dm: (surface, ticket) = (.dm, nil)
+        }
+        let typing = Task {
+            while !Task.isCancelled {
+                _ = try? await client.triggerTypingIndicator(channelId: ChannelSnowflake(channel))
+                try? await Task.sleep(for: .seconds(8))
+            }
+        }
+        defer { typing.cancel() }
+        do {
+            let turns = try await history(channel: channel, requesterId: requesterId, surface: surface)
+            let reply = try await bill.respond(to: Conversation(id: "discord:\(channel)", surface: surface, requester: requester, turns: turns, ticket: ticket))
+            if reply.handedOff { quiet[channel] = Date().addingTimeInterval(86400) }
+            let ping = reply.handedOff ? settings.handOffRole : nil
+            for (index, chunk) in FrontDesk.chunks(reply.text).enumerated() {
+                let content = index == 0 && ping != nil ? "<@&\(ping!)> \(chunk)" : chunk
+                try await client.createMessage(
+                    channelId: ChannelSnowflake(channel),
+                    payload: .init(content: content, allowed_mentions: .init(parse: [], roles: ping.map { [RoleSnowflake($0)] } ?? []))
+                ).guardSuccess()
+            }
+        } catch {
+            logger.error("Bill couldn't answer in \(channel): \(error)")
+        }
+    }
+
+    /// The channel's recent messages, oldest first.
+    func history(channel: String, requesterId: String, surface: Surface) async throws -> [Turn] {
+        let messages = try await client.listMessages(channelId: ChannelSnowflake(channel), limit: 50).decode()
+        return messages.reversed().compactMap { m -> Turn? in
+            guard !m.content.isEmpty, let user = m.author else { return nil }
+            let id = user.id.rawValue
+            let author: Turn.Author =
+                if id == me { .bill } else if id == requesterId { .requester } else if surface == .ticket { .staff } else { .other }
+            return Turn(author: author, name: user.global_name ?? user.username, text: m.content, at: m.timestamp.date)
+        }
+    }
+
+    /// Splits text into Discord-sized messages, on line breaks where it can.
+    static func chunks(_ text: String, limit: Int = 1900) -> [String] {
+        var out: [String] = [], current = ""
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            if current.count + line.count + 1 > limit, !current.isEmpty {
+                out.append(current)
+                current = ""
+            }
+            var rest = Substring(line)
+            while rest.count > limit {
+                out.append(String(rest.prefix(limit)))
+                rest = rest.dropFirst(limit)
+            }
+            current += current.isEmpty ? String(rest) : "\n\(rest)"
+        }
+        if !current.isEmpty { out.append(current) }
+        return out
+    }
+}
