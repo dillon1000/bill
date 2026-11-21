@@ -1,0 +1,555 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Chain from "../islands/Chain.tsx";
+import Code from "../islands/Code.tsx";
+import Demo from "../islands/Demo.tsx";
+import Queue from "../islands/Queue.tsx";
+import Scopes from "../islands/Scopes.tsx";
+
+const repo = "https://github.com/dillon1000/bill";
+const headline = ["Hand", "Bill", "the", "queue.", "Get", "your", "week", "back."];
+
+const reads = [
+  { title: "Your docs", body: "Any site that publishes llms-full.txt. Bill searches it, reads whole pages and links the one it used.", detail: "search_docs · read_doc" },
+  { title: "Your code", body: "One repository, through a GitHub App that can read code, pull requests and issues and nothing else. Secrets, keys and paths you list stay out of reach.", detail: "contents: read · issues: write" },
+  { title: "The customer's account", body: "Your own plugin, built for each conversation and bound to the person asking. Detailed data only with their consent.", detail: "account:read · account:detail" },
+  { title: "What happened before", body: "Earlier tickets, feedback and emails from the same person, so nobody explains a problem twice.", detail: "history:read" },
+];
+
+const acts = [
+  { title: "Hands off", body: "Money, bans, appeals, data requests, legal, security, or a customer who's upset: it passes the ticket to a person with what it checked, and pings your team." },
+  { title: "Triages", body: "Sets priority and labels from a list you choose, and leaves internal notes your customer never sees." },
+  { title: "Closes", body: "Only once the customer has said it's solved, and only by quoting their own words from their latest message." },
+  { title: "Files issues", body: "For a bug it confirmed in the code or the customer's data, after searching for a duplicate, written for engineers." },
+];
+
+const rules = [
+  "Instructions come only from the system prompt. Messages, code comments, PRs, emails and tool results are data, however official they sound.",
+  "It never asks for a password, token, API key or card, and tells anyone who pastes one to reset it.",
+  "It never promises a refund, credit, unban or deadline. A person decides those.",
+  "It can't confirm whether an email, account or user exists.",
+  "It links only URLs a tool returned, and says so when it doesn't know.",
+  "Secrets are redacted from what the model sees, from replies and from the audit log.",
+];
+
+const primitives = [
+  ["generateText", "the tool loop, with tools run in parallel"],
+  ["stopWhen", "stepCountIs, hasToolCall"],
+  ["prepareStep", "trim history, force a final answer"],
+  ["onStepFinish", "where every step is audited"],
+  ["Tool.typed", "Decodable input, JSON Schema, errors back to the model"],
+  ["pruneMessages", "drop old tool traffic to fit a budget"],
+];
+---
+
+<Layout
+  title="Bill: open-source AI support for consumer products"
+  description="Bill answers your customers in Discord and your app, reads your docs, code and their account, and hands off what a person should decide. Every action is audited. MIT licensed, in Swift."
+>
+  <header class="top">
+    <div class="page top-inner">
+      <a href="/" class="mark" aria-label="Bill">
+        <img src="/favicon.svg" alt="" width="24" height="24" />
+        <span>Bill</span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#demo">Demo</a>
+        <a href="#scopes">Permissions</a>
+        <a href="#audit">Audit log</a>
+        <a href="#code">Code</a>
+      </nav>
+      <a class="btn btn-secondary top-cta" href={repo}>GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-lines" aria-hidden="true">{Array.from({ length: 5 }, (_, i) => <span style={`--i:${i}`} />)}</div>
+      <div class="page hero-grid">
+        <div class="hero-copy">
+          <h1>
+            {headline.map((w, i) => <span class="word" style={`--i:${i}`}>{w} </span>)}
+          </h1>
+          <p class="lede">
+            Bill is an open-source AI agent for consumer support. It answers in Discord tickets, DMs and your app, reads your docs, your code and the customer's own account, handles what's safe and hands the rest to your team. Every action is written to an audit log before it runs.
+          </p>
+          <div class="ctas">
+            <a class="btn btn-primary" href={repo}>
+              Get started
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+            </a>
+            <a class="btn btn-secondary" href="#demo">Watch it work</a>
+          </div>
+          <p class="meta mono">MIT · Swift 6 on Vapor · any OpenAI-compatible model</p>
+        </div>
+        <div class="hero-queue">
+          <Queue client:load />
+        </div>
+      </div>
+    </section>
+
+    <section id="demo" class="section">
+      <div class="page">
+        <div class="head reveal">
+          <h2>Watch a real conversation</h2>
+          <p>These replay Bill's actual loop: the same tools, scopes and audit events, in the same order. Open any row of the audit log to see exactly what the model got back.</p>
+        </div>
+        <div class="reveal">
+          <Demo client:visible />
+        </div>
+      </div>
+    </section>
+
+    <section class="section tiles-section">
+      <div class="page">
+        <div class="head reveal">
+          <h2>What it reads, and what it does about it</h2>
+        </div>
+        <div class="tiles reveal">
+          {
+            reads.map((r) => (
+              <article class="tile">
+                <h3>{r.title}</h3>
+                <p>{r.body}</p>
+                <span class="tile-detail mono">{r.detail}</span>
+              </article>
+            ))
+          }
+        </div>
+        <div class="tiles tiles-acts reveal">
+          {
+            acts.map((a) => (
+              <article class="tile">
+                <h3>{a.title}</h3>
+                <p>{a.body}</p>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section id="scopes" class="section">
+      <div class="page">
+        <div class="head reveal">
+          <h2>It can only reach what the conversation allows</h2>
+          <p>Every tool declares a scope. A policy grants scopes from where the conversation is and who's asking, so a public forum post never touches an account, and a customer's detailed data needs their consent. Change the conversation and watch the tools change.</p>
+        </div>
+        <div class="reveal">
+          <Scopes client:visible />
+        </div>
+      </div>
+    </section>
+
+    <section id="audit" class="section band">
+      <div class="page">
+        <div class="head reveal">
+          <h2>An audit log you can't quietly edit</h2>
+          <p>Each event carries the SHA-256 of the one before it, and these are hashed live in your browser the same way. Change a value, forge a hash or delete an event, and verification fails. If an event can't be written, Bill stops before it acts.</p>
+        </div>
+        <div class="reveal">
+          <Chain client:visible />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="page rules-grid">
+        <div class="head reveal">
+          <h2>Rules it can't be talked out of</h2>
+          <p>They're in the core system prompt, ahead of your product's. Your prompt can add knowledge and rules, not loosen these.</p>
+        </div>
+        <ol class="rules reveal">
+          {rules.map((r, i) => <li><span class="rule-n mono">{String(i + 1).padStart(2, "0")}</span>{r}</li>)}
+        </ol>
+      </div>
+    </section>
+
+    <section id="code" class="section">
+      <div class="page code-grid">
+        <div class="head reveal">
+          <h2>A Swift package, built on the AI SDK's ideas</h2>
+          <p>The primitives from Vercel's AI SDK, ported to Swift. Bring your own plugins for accounts and tickets; the rest is included.</p>
+          <dl class="prims">
+            {
+              primitives.map(([name, what]) => (
+                <>
+                  <dt class="mono">{name}</dt>
+                  <dd>{what}</dd>
+                </>
+              ))
+            }
+          </dl>
+        </div>
+        <div class="reveal">
+          <Code client:visible />
+        </div>
+      </div>
+    </section>
+
+    <section class="section final">
+      <div class="page final-inner reveal">
+        <h2>Run it on your queue</h2>
+        <p>Point it at your docs and repository, write a plugin for your accounts, and deploy it anywhere Swift runs. It's the support agent Buildcord runs in production.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href={repo}>
+            Read the README
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+          </a>
+          <a class="btn btn-secondary" href="https://buildcord.dev">See Buildcord</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="page foot-inner">
+      <span>Bill is MIT licensed.</span>
+      <nav aria-label="Links">
+        <a href={repo}>GitHub</a>
+        <a href={`${repo}/blob/main/LICENSE`}>License</a>
+        <a href="https://buildcord.dev">Buildcord</a>
+      </nav>
+    </div>
+  </footer>
+</Layout>
+
+<style>
+  .top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: saturate(1.6) blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top-inner {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 64px;
+  }
+  .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 18px;
+    text-decoration: none;
+  }
+  .nav {
+    display: flex;
+    gap: 24px;
+    font-size: 15px;
+    color: var(--text-dim);
+  }
+  .nav a {
+    text-decoration: none;
+    transition: color 160ms var(--ease);
+  }
+  .nav a:hover {
+    color: var(--text);
+  }
+  .top-cta {
+    margin-left: auto;
+    height: 36px;
+    font-size: 14px;
+  }
+  @media (max-width: 720px) {
+    .nav {
+      display: none;
+    }
+  }
+
+  .hero {
+    position: relative;
+    padding: clamp(56px, 9vw, 120px) 0 clamp(64px, 8vw, 104px);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .hero-lines {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 60%, transparent);
+  }
+  .hero-lines span {
+    border-left: 1px solid var(--line);
+    transform-origin: top;
+    animation: draw 1.4s var(--ease) both;
+    animation-delay: calc(var(--i) * 90ms);
+  }
+  .hero-lines span:last-child {
+    border-right: 1px solid var(--line);
+    position: absolute;
+    right: var(--gutter);
+    top: 0;
+    bottom: 0;
+    border-left: 0;
+  }
+  @keyframes draw {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  .hero-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: center;
+  }
+  @media (max-width: 960px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  h1 {
+    margin: 0 0 28px;
+    font-size: clamp(44px, 6.6vw, 84px);
+    line-height: 1.02;
+    font-weight: 400;
+  }
+  .word {
+    display: inline-block;
+    white-space: pre;
+    animation: word 900ms var(--ease) both;
+    animation-delay: calc(120ms + var(--i) * 70ms);
+  }
+  .word:nth-child(n + 5) {
+    color: var(--text-dim);
+  }
+  @keyframes word {
+    from {
+      opacity: 0;
+      transform: translateY(0.4em);
+      filter: blur(8px);
+    }
+  }
+  .lede {
+    margin: 0 0 32px;
+    max-width: 560px;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--text-dim);
+    animation: word 900ms var(--ease) 650ms both;
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .hero-copy .ctas {
+    animation: word 900ms var(--ease) 780ms both;
+  }
+  .meta {
+    margin: 28px 0 0;
+    font-size: 13px;
+    color: var(--text-faint);
+    animation: word 900ms var(--ease) 900ms both;
+  }
+  .hero-queue {
+    animation: word 1100ms var(--ease) 500ms both;
+  }
+
+  .section {
+    padding: clamp(72px, 10vw, 128px) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .band {
+    background: var(--surface);
+  }
+  .head {
+    max-width: 720px;
+    margin-bottom: 40px;
+  }
+  h2 {
+    margin: 0 0 16px;
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.08;
+    font-weight: 400;
+  }
+  .head p {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+  }
+  .tiles-acts {
+    border-top: 0;
+  }
+  @media (max-width: 1000px) {
+    .tiles {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 560px) {
+    .tiles {
+      grid-template-columns: 1fr;
+    }
+  }
+  .tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 240px;
+    padding: 24px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    transition: background-color 240ms var(--ease);
+  }
+  .tile::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 2px;
+    width: 100%;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 420ms var(--ease);
+  }
+  .tile:hover {
+    background: var(--surface);
+  }
+  .tile:hover::before {
+    transform: scaleX(1);
+  }
+  .tiles-acts .tile {
+    min-height: 200px;
+    background: var(--surface);
+  }
+  .tiles-acts .tile:hover {
+    background: var(--frame);
+  }
+  .tile h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .tile p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+  .tile-detail {
+    margin-top: auto;
+    font-size: 13px;
+    color: var(--accent-text);
+  }
+
+  .rules-grid,
+  .code-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: clamp(32px, 6vw, 96px);
+    align-items: start;
+  }
+  @media (max-width: 960px) {
+    .rules-grid,
+    .code-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .rules {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+  }
+  .rules li {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .rule-n {
+    color: var(--accent-text);
+    font-size: 14px;
+    padding-top: 3px;
+  }
+  .prims {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 20px;
+    margin: 32px 0 0;
+    font-size: 15px;
+  }
+  .prims dt {
+    color: var(--accent-text);
+  }
+  .prims dd {
+    margin: 0;
+    color: var(--text-dim);
+  }
+
+  .final {
+    border-bottom: 0;
+  }
+  .final-inner {
+    max-width: 760px;
+    text-align: center;
+  }
+  .final-inner p {
+    margin: 0 auto 32px;
+    max-width: 560px;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+  .final .ctas {
+    justify-content: center;
+  }
+
+  .foot {
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+    color: var(--text-faint);
+  }
+  .foot-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+  .foot nav {
+    display: flex;
+    gap: 20px;
+  }
+  .foot a {
+    text-decoration: none;
+  }
+  .foot a:hover {
+    color: var(--text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .word,
+    .lede,
+    .ctas,
+    .meta,
+    .hero-queue,
+    .hero-lines span {
+      animation: none !important;
+    }
+  }
+</style>
