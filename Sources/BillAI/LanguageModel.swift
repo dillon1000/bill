@@ -97,7 +97,7 @@ public struct OpenAICompatibleModel: LanguageModel {
             guard (200..<300).contains(status) else {
                 throw ModelError(status: status, description: "\(provider) answered \(status): \(String(buffer: data).prefix(500))")
             }
-            return try parse(Data(buffer: data))
+            return try parse(Data(data.readableBytesView))
         }
     }
 
