@@ -42,7 +42,8 @@ let desk = FrontDesk(
     bill: bill, client: gateway.client,
     settings: .init(
         guildId: try env("DISCORD_GUILD_ID"), forums: Set(env("DISCORD_FORUM_IDS", default: "").split(separator: ",").map(String.init)),
-        allowDMs: env("DISCORD_DMS", default: "true") == "true", handOffRole: Environment.get("DISCORD_SUPPORT_ROLE_ID")
+        allowDMs: env("DISCORD_DMS", default: "true") == "true", answerMentions: env("DISCORD_MENTIONS", default: "true") == "true",
+        handOffRole: Environment.get("DISCORD_SUPPORT_ROLE_ID")
     ),
     tickets: NoTickets(), identity: DiscordOnlyIdentity(), logger: app.logger
 )

@@ -7,6 +7,8 @@ public enum Surface: String, Sendable, Codable {
     case ticket
     /// A public help forum post.
     case forum
+    /// A public server channel where someone mentioned Bill.
+    case channel
     /// A direct message to the bot.
     case dm
     /// A chat inside the product, where the person is signed in.
