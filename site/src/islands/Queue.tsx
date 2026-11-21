@@ -5,18 +5,18 @@ import { color, font, radius, text } from "../styles/tokens.stylex";
 
 type Outcome = "answered" | "handed off" | "closed" | "issue filed";
 
-// The kind of thing a consumer product's support queue is full of, and what Bill's tools would do with each.
+// Typical consumer-app questions, and the tool calls Bill would make for each.
 const items: { q: string; trail: string[]; outcome: Outcome }[] = [
-  { q: "my slash command doesn't show up", trail: ["my_account", "search_docs"], outcome: "answered" },
+  { q: "phone stopped syncing since yesterday", trail: ["my_account", "recent_errors", "search_docs"], outcome: "answered" },
   { q: "charged twice this month??", trail: ["my_account", "my_support_history", "hand_off"], outcome: "handed off" },
-  { q: "bot went offline last night", trail: ["my_account", "bot_runs", "search_docs"], outcome: "answered" },
-  { q: "that fixed it, thanks!", trail: ["close_ticket"], outcome: "closed" },
-  { q: "embed colour resets after I save", trail: ["search_code", "read_file", "search_issues", "file_issue"], outcome: "issue filed" },
-  { q: "can you unban my server", trail: ["my_account", "hand_off"], outcome: "handed off" },
-  { q: "how do I make a ticket system", trail: ["search_docs", "read_doc"], outcome: "answered" },
-  { q: "is the dashboard down for anyone else", trail: ["announcements", "recent_changes"], outcome: "answered" },
-  { q: "works now, ty", trail: ["close_ticket"], outcome: "closed" },
-  { q: "delete my account and data please", trail: ["hand_off"], outcome: "handed off" },
+  { q: "how do I share a folder read-only", trail: ["search_docs", "read_doc"], outcome: "answered" },
+  { q: "signed back in, it works now", trail: ["close_ticket"], outcome: "closed" },
+  { q: "PDF export downloads a file called .pdf", trail: ["search_code", "read_file", "recent_changes", "file_issue"], outcome: "issue filed" },
+  { q: "please delete my account and data", trail: ["my_account", "hand_off"], outcome: "handed off" },
+  { q: "did the dark mode toggle move?", trail: ["recent_changes", "search_pull_requests"], outcome: "answered" },
+  { q: "upload stuck at 99%", trail: ["recent_errors", "search_issues"], outcome: "answered" },
+  { q: "thanks, sorted", trail: ["close_ticket"], outcome: "closed" },
+  { q: "someone else is logged into my account", trail: ["hand_off"], outcome: "handed off" },
 ];
 
 const VISIBLE = 5;

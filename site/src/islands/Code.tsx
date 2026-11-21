@@ -29,7 +29,7 @@ struct Accounts: Plugin {
         guard let id = conversation.requester.accountId else { return [] }
         return [
             BillTool(.readAccount, .typed("my_account",
-                description: "The requester's plan, standing and bots.",
+                description: "The requester's plan, devices and standing.",
                 schema: Schema.object([:])
             ) { (_: Empty, _) in try await plan(for: id) }),
         ]
