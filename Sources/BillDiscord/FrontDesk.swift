@@ -77,6 +77,8 @@ public actor FrontDesk {
     }
 
     func received(_ m: Gateway.MessageCreate) async {
+        // READY can arrive before anyone listens to the gateway's events, so ask Discord who we are when it hasn't been seen.
+        if me == nil { me = try? await client.getOwnUser().decode().id.rawValue }
         guard let author = m.author, author.bot != true, m.webhook_id == nil, !m.content.isEmpty, let me else { return }
         let channel = m.channel_id.rawValue
         let mentioned = m.mentions.contains { $0.id.rawValue == me }
