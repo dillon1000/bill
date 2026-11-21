@@ -49,7 +49,7 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
   title="Bill: an open-source support agent with scoped tools and an audit log"
   description="A Swift package that answers support from your docs, code and account data. Tools are scoped per conversation and every step goes to a hash-chained log. MIT."
 >
-  <header class="top" data-over="hero">
+  <header class="top" data-over="dark">
     <div class="top-bar">
       <a href="/" class="mark" aria-label="Bill">
         <img class="mark-goose" src="/goose.svg" alt="" width="30" height="30" />
@@ -91,7 +91,8 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
       </div>
     </section>
 
-    <section id="demo" class="section">
+    <section id="demo" class="section tone-mist">
+      <div class="backdrop"><Field tone="mist" client:visible /></div>
       <div class="page">
         <div class="head reveal">
           <h2>Replays</h2>
@@ -144,7 +145,8 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
       </div>
     </section>
 
-    <section id="audit" class="section band">
+    <section id="audit" class="section tone-night" data-tone="dark">
+      <div class="backdrop"><Field tone="night" client:visible /></div>
       <div class="page">
         <div class="head reveal">
           <h2>Hash-chained audit log</h2>
@@ -156,7 +158,8 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
       </div>
     </section>
 
-    <section class="section">
+    <section class="section tone-iris" data-tone="dark">
+      <div class="backdrop"><Field tone="iris" client:visible /></div>
       <div class="page split">
         <div class="head reveal">
           <h2>Fixed rules</h2>
@@ -168,7 +171,8 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
       </div>
     </section>
 
-    <section id="code" class="section">
+    <section id="code" class="section tone-mist">
+      <div class="backdrop"><Field tone="mist" client:visible /></div>
       <div class="page split">
         <div class="head reveal">
           <h2>AI SDK primitives, in Swift</h2>
@@ -189,37 +193,49 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
       </div>
     </section>
 
-    <section class="section final">
-      <div class="page final-inner reveal">
-        <h2>Get started</h2>
-        <pre class="install mono">.package(url: "https://github.com/dillon1000/bill.git", from: "0.1.0")</pre>
-        <div class="ctas">
-          <a class="btn btn-primary" href={repo}>Read the README <Fragment set:html={arrow} /></a>
-          <a class="btn btn-secondary" href={`${repo}/tree/main/Sources/BillExample`}>Example app</a>
-        </div>
-      </div>
-    </section>
   </main>
 
-  <footer class="foot">
+  <footer class="foot tone-night" data-tone="dark">
+    <div class="backdrop"><Field tone="night" client:visible /></div>
+    <div class="page foot-cta reveal">
+      <h2>Get started</h2>
+      <pre class="install mono">.package(url: "https://github.com/dillon1000/bill.git", from: "0.1.0")</pre>
+      <div class="ctas">
+        <a class="btn btn-light" href={repo}>Read the README <Fragment set:html={arrow} /></a>
+        <a class="btn btn-outline-light" href={`${repo}/tree/main/Sources/BillExample`}>Example app</a>
+      </div>
+    </div>
+    <div class="page foot-brand">
+      <a class="wordmark" href="https://buildcord.dev">Buildcord</a>
+      <div class="foot-lines">
+        <p>Bill is the support agent <a href="https://buildcord.dev">Buildcord</a> runs in production, answering tickets and questions in our Discord.</p>
+        <p class="swift">Buildcord <span class="heart" aria-label="loves">♥</span> Swift. Bill and our Discord community bot are both Swift on Vapor.</p>
+      </div>
+    </div>
     <div class="page foot-inner">
       <span>MIT licensed. Goose from <a href="https://github.com/jdecked/twemoji">Twemoji</a>, CC BY 4.0.</span>
       <nav aria-label="Links">
         <a href={repo}>GitHub</a>
         <a href={`${repo}/blob/main/LICENSE`}>License</a>
+        <a href="https://buildcord.dev">Buildcord</a>
       </nav>
     </div>
   </footer>
 </Layout>
 
 <script>
-  // The header is iris glass while it floats over the hero, and white glass past it.
+  // The header turns to dark glass over the dark sections and white glass over the light ones.
   const header = document.querySelector<HTMLElement>(".top");
-  const hero = document.getElementById("hero");
-  if (header && hero) {
-    new IntersectionObserver(([entry]) => header.setAttribute("data-over", entry!.isIntersecting ? "hero" : "page"), {
-      rootMargin: "-40px 0px -100% 0px",
-    }).observe(hero);
+  const under = new Set<Element>();
+  if (header) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) e.isIntersecting ? under.add(e.target) : under.delete(e.target);
+        header.setAttribute("data-over", under.size ? "dark" : "light");
+      },
+      { rootMargin: "-40px 0px -100% 0px" },
+    );
+    document.querySelectorAll("#hero, [data-tone=dark]").forEach((el) => io.observe(el));
   }
 </script>
 
@@ -256,7 +272,7 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
       color 300ms var(--ease),
       box-shadow 300ms var(--ease);
   }
-  .top[data-over="hero"] .top-bar {
+  .top[data-over="dark"] .top-bar {
     color: #fff;
     background: rgba(40, 20, 170, 0.28);
     box-shadow:
@@ -333,11 +349,11 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
   .top-cta:hover {
     background: #2a2b2f;
   }
-  .top[data-over="hero"] .top-cta {
+  .top[data-over="dark"] .top-cta {
     background: #fff;
     color: #3a26d6;
   }
-  .top[data-over="hero"] .top-cta:hover {
+  .top[data-over="dark"] .top-cta:hover {
     background: #f1efff;
   }
   @media (max-width: 760px) {
@@ -438,9 +454,6 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
     flex-wrap: wrap;
     gap: 12px;
   }
-  .final .ctas {
-    justify-content: center;
-  }
   .hero-copy .ctas {
     animation: word 900ms var(--ease) 920ms both;
   }
@@ -449,20 +462,40 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
   }
 
   .section {
-    padding: clamp(72px, 10vw, 120px) 0;
-    border-bottom: 1px solid var(--line);
+    position: relative;
+    padding: clamp(88px, 11vw, 144px) 0;
+    isolation: isolate;
+    overflow: hidden;
   }
-  .band {
-    background: var(--surface);
+  /* Each toned section paints a field of light behind its content. */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .tone-mist {
+    background: #f1eeff;
+  }
+  .tone-night {
+    background: #120e2c;
+    color: #fff;
+  }
+  .tone-iris {
+    background: #5a49f6;
+    color: #fff;
+  }
+  .tone-night .head p,
+  .tone-iris .head p {
+    color: rgba(255, 255, 255, 0.78);
   }
   .head {
     max-width: 720px;
-    margin-bottom: 40px;
+    margin-bottom: 48px;
   }
   h2 {
-    margin: 0 0 12px;
-    font-size: clamp(34px, 4.4vw, 56px);
-    line-height: 1.05;
+    margin: 0 0 14px;
+    font-size: clamp(40px, 5.6vw, 76px);
+    line-height: 1.02;
     font-weight: 400;
   }
   .head p {
@@ -560,19 +593,26 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
     list-style: none;
     margin: 0;
     padding: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
   }
   .rules li {
     display: grid;
-    grid-template-columns: 48px 1fr;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 18px;
+    grid-template-columns: 72px 1fr;
+    align-items: baseline;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: clamp(18px, 1.6vw, 22px);
+    text-shadow: 0 1px 18px rgba(30, 10, 120, 0.3);
+    transition: transform 300ms var(--ease);
+  }
+  .rules li:hover {
+    transform: translateX(6px);
   }
   .rule-n {
-    color: var(--accent-text);
-    font-size: 14px;
-    padding-top: 3px;
+    font-family: var(--serif);
+    font-size: 36px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.5);
   }
   .prims {
     display: grid;
@@ -589,49 +629,120 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
     color: var(--text-dim);
   }
 
-  .final {
-    border-bottom: 0;
+  .foot {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding-top: clamp(88px, 11vw, 144px);
   }
-  .final-inner {
-    max-width: 760px;
+  .foot-cta {
     text-align: center;
   }
+  .foot-cta .ctas {
+    justify-content: center;
+  }
   .install {
-    margin: 8px auto 28px;
+    margin: 12px auto 32px;
     max-width: 100%;
     width: fit-content;
-    padding: 12px 16px;
-    border-radius: 10px;
+    padding: 14px 18px;
+    border-radius: 12px;
     corner-shape: squircle;
-    background: var(--surface);
-    box-shadow: inset 0 0 0 1px var(--line);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(10px);
+    color: #e6e2ff;
     font-size: 14px;
     overflow-x: auto;
     text-align: left;
   }
-
-  .foot {
-    border-top: 1px solid var(--line);
-    font-size: 14px;
-    color: var(--text-faint);
+  .foot-brand {
+    margin-top: clamp(96px, 12vw, 168px);
+  }
+  /* The Buildcord wordmark, as big as the page allows; light sweeps through it on hover. */
+  .wordmark {
+    display: block;
+    font-family: var(--serif);
+    font-size: clamp(76px, 18.5vw, 280px);
+    line-height: 0.82;
+    font-weight: 400;
+    text-decoration: none;
+    background: linear-gradient(100deg, #6c5cff 0%, #c9c2ff 22%, #ffffff 34%, #a89dff 48%, #5a49f6 70%, #c9c2ff 100%);
+    background-size: 260% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-position: 0 0;
+    transition: background-position 1600ms var(--ease);
+  }
+  .wordmark:hover {
+    background-position: -160% 0;
+  }
+  .foot-lines {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 48px;
+    margin-top: 40px;
+    font-size: clamp(17px, 1.5vw, 20px);
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.72);
+  }
+  @media (max-width: 760px) {
+    .foot-lines {
+      grid-template-columns: 1fr;
+    }
+  }
+  .foot-lines p {
+    margin: 0;
+  }
+  .foot-lines a {
+    color: #fff;
+  }
+  .swift {
+    color: #fff;
+  }
+  .heart {
+    display: inline-block;
+    color: #ff5f8f;
+    animation: beat 1.6s var(--ease) infinite;
+  }
+  @keyframes beat {
+    0%,
+    60%,
+    100% {
+      transform: scale(1);
+    }
+    15% {
+      transform: scale(1.25);
+    }
+    30% {
+      transform: scale(1.05);
+    }
+    45% {
+      transform: scale(1.18);
+    }
   }
   .foot-inner {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 16px;
+    margin-top: 72px;
     padding-top: 28px;
-    padding-bottom: 28px;
+    padding-bottom: 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.55);
   }
   .foot nav {
     display: flex;
     gap: 20px;
   }
-  .foot a {
+  .foot-inner a {
     text-decoration: none;
   }
-  .foot a:hover {
-    color: var(--text);
+  .foot-inner a:hover {
+    color: #fff;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -639,7 +750,9 @@ const arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true
     .lede,
     .ctas,
     .field,
-    .hero-thread {
+    .hero-thread,
+    .wordmark,
+    .heart {
       animation: none !important;
     }
   }

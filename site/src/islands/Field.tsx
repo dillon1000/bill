@@ -1,9 +1,54 @@
 import { useEffect, useRef } from "react";
 
 /*
- * The hero's background: deep iris, with soft bands of light drifting across and fast streaks of light
+ * A section background: a sky, with soft bands of light drifting across and fast streaks of light
  * shooting through them. A few streaks carry an audit hash at their head.
  */
+
+type RGB = [number, number, number];
+interface Palette {
+  sky: [string, string, string];
+  tints: RGB[];
+  /** "lighter" adds light on dark skies; on a pale sky the streaks are drawn as colour instead. */
+  blend: GlobalCompositeOperation;
+  strength: number;
+  density: number;
+  hashColor: string;
+  /** Backing-store scale. Soft backgrounds look the same at half resolution and cost a quarter as much to paint. */
+  resolution: number;
+}
+
+const palettes = {
+  iris: {
+    sky: ["#7468ff", "#5a49f6", "#3f28d9"],
+    tints: [[255, 255, 255], [236, 232, 255], [214, 205, 255], [255, 240, 252]],
+    blend: "lighter",
+    strength: 1,
+    density: 20000,
+    resolution: 0.5,
+    hashColor: "255,255,255",
+  },
+  night: {
+    sky: ["#17123a", "#120e2c", "#0b0820"],
+    tints: [[122, 107, 255], [180, 170, 255], [255, 255, 255], [96, 70, 240]],
+    blend: "lighter",
+    strength: 0.7,
+    density: 26000,
+    resolution: 0.5,
+    hashColor: "190,182,255",
+  },
+  mist: {
+    sky: ["#f7f6ff", "#f1eeff", "#ebe7ff"],
+    tints: [[85, 70, 245], [120, 104, 255], [160, 148, 255], [255, 255, 255]],
+    blend: "source-over",
+    strength: 0.42,
+    density: 30000,
+    resolution: 0.5,
+    hashColor: "85,70,245",
+  },
+} satisfies Record<string, Palette>;
+
+export type FieldTone = keyof typeof palettes;
 
 const HEX = "0123456789abcdef";
 const hash = () => Array.from({ length: 8 }, () => HEX[Math.floor(Math.random() * 16)]).join("");
@@ -14,7 +59,7 @@ interface Streak {
   length: number;
   speed: number;
   bright: number;
-  tint: [number, number, number];
+  tint: RGB;
   /** Most streaks are out of focus; a few are sharp. */
   sharp: boolean;
   hash?: string;
@@ -26,18 +71,12 @@ interface Band {
   ry: number;
   speed: number;
   alpha: number;
-  tint: [number, number, number];
+  tint: RGB;
 }
 
-const TINTS: [number, number, number][] = [
-  [255, 255, 255],
-  [236, 232, 255],
-  [214, 205, 255],
-  [255, 240, 252],
-];
-
-export default function Field() {
+export default function Field({ tone = "iris" }: { tone?: FieldTone }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const palette: Palette = palettes[tone];
 
   useEffect(() => {
     const el = canvas.current!;
@@ -47,7 +86,7 @@ export default function Field() {
     let streaks: Streak[] = [];
     let bands: Band[] = [];
 
-    const tint = () => TINTS[Math.floor(Math.random() * TINTS.length)]!;
+    const tint = () => palette.tints[Math.floor(Math.random() * palette.tints.length)]!;
     const streak = (x?: number): Streak => {
       const length = 160 + Math.random() * Math.min(900, w * 0.6);
       const sharp = Math.random() < 0.18;
@@ -68,19 +107,19 @@ export default function Field() {
       rx: w * (0.35 + Math.random() * 0.45),
       ry: 30 + Math.random() * 90,
       speed: 8 + Math.random() * 26,
-      alpha: 0.12 + Math.random() * 0.22,
+      alpha: (0.12 + Math.random() * 0.22) * palette.strength,
       tint: tint(),
     });
 
     const resize = () => {
-      const dpr = Math.min(devicePixelRatio || 1, 2);
+      const dpr = Math.min(devicePixelRatio || 1, 2) * palette.resolution;
       w = el.clientWidth;
       h = el.clientHeight;
       el.width = Math.round(w * dpr);
       el.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      streaks = Array.from({ length: Math.round((w * h) / 20000) }, () => streak(Math.random() * w * 1.3));
-      bands = Array.from({ length: 7 }, () => band(Math.random() * w));
+      streaks = Array.from({ length: Math.round((w * h) / palette.density) }, () => streak(Math.random() * w * 1.3));
+      bands = Array.from({ length: palette.resolution < 1 ? 4 : 7 }, () => band(Math.random() * w));
     };
 
     const draw = (now: number) => {
@@ -88,15 +127,15 @@ export default function Field() {
       last = now;
 
       const sky = ctx.createLinearGradient(0, 0, 0, h);
-      sky.addColorStop(0, "#7468ff");
-      sky.addColorStop(0.45, "#5a49f6");
-      sky.addColorStop(1, "#3f28d9");
+      sky.addColorStop(0, palette.sky[0]);
+      sky.addColorStop(0.45, palette.sky[1]);
+      sky.addColorStop(1, palette.sky[2]);
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, w, h);
 
       // Light adds up where it overlaps, as it would.
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = palette.blend;
       for (const b of bands) {
         b.x += b.speed * dt;
         if (b.x - b.rx > w) Object.assign(b, band());
@@ -137,13 +176,18 @@ export default function Field() {
               [4, 0.16],
               [1.2, 0.75],
             ] as const)
-          : ([
-              [34, 0.04],
-              [16, 0.07],
-              [6, 0.1],
-            ] as const);
+          : palette.resolution < 1
+            ? ([
+                [24, 0.06],
+                [8, 0.12],
+              ] as const)
+            : ([
+                [34, 0.04],
+                [16, 0.07],
+                [6, 0.1],
+              ] as const);
         for (const [width, alpha] of passes) {
-          ctx.globalAlpha = alpha;
+          ctx.globalAlpha = alpha * palette.strength;
           ctx.lineWidth = width;
           ctx.beginPath();
           ctx.moveTo(s.x - s.length, s.y);
@@ -152,7 +196,7 @@ export default function Field() {
         }
         ctx.globalAlpha = 1;
         if (s.hash) {
-          ctx.fillStyle = `rgba(255,255,255,${0.45 * s.bright})`;
+          ctx.fillStyle = `rgba(${palette.hashColor},${0.45 * s.bright * Math.max(palette.strength, 0.6)})`;
           ctx.fillText(s.hash, s.x + 8, s.y + 4);
         }
       }
@@ -189,5 +233,5 @@ export default function Field() {
     };
   }, []);
 
-  return <canvas ref={canvas} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", background: "#5a49f6" }} />;
+  return <canvas ref={canvas} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", background: palette.sky[1] }} />;
 }
