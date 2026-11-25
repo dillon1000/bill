@@ -85,6 +85,8 @@ public struct Bill: Sendable {
         } catch let error as AuditFailure {
             throw error
         } catch {
+            // A newer message superseded this answer; it isn't a failure, so nothing is handed off.
+            if Task.isCancelled || error is CancellationError { throw CancellationError() }
             try await audit.record(.error, conversation, data: ["error": .string("\(error)")])
             if let handOff = granted.first(where: { $0.name == "hand_off" }) {
                 _ = try? await handOff.execute(
