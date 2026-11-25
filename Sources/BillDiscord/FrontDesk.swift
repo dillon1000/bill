@@ -60,6 +60,7 @@ public actor FrontDesk {
     var pending: [String: Task<Void, Never>] = [:]
     var quiet: [String: Date] = [:]
     var replies: [String: [Date]] = [:]
+    var answering: Set<String> = []
 
     public init(bill: Bill, client: any DiscordClient, settings: Settings, tickets: any TicketDirectory, identity: any IdentityResolver, logger: Logger) {
         self.bill = bill
@@ -134,8 +135,10 @@ public actor FrontDesk {
         return entry
     }
 
-    /// Answers a ticket channel or DM now, whatever the ticket's state, as when staff ask Bill to pick it up. Nil when the channel is neither, or Bill doesn't answer its requester.
+    /// Answers a ticket channel or DM now, whatever the ticket's state, as when staff ask Bill to pick it up, in place of any answer still waiting for
+    /// the requester to finish typing. Nil when the channel is neither, Bill doesn't answer its requester, or it's already answering there.
     public func respond(inChannel channel: String) async throws -> Reply? {
+        pending.removeValue(forKey: channel)?.cancel()
         if me == nil { me = try? await client.getOwnUser().decode().id.rawValue }
         let place: Place, requesterId: String
         if let ticket = await tickets.ticket(channel: channel) {
@@ -158,6 +161,8 @@ public actor FrontDesk {
     }
 
     func reply(channel: String, place: Place, requesterId: String, name: String, limited: Bool) async throws -> Reply? {
+        guard answering.insert(channel).inserted else { return nil }
+        defer { answering.remove(channel) }
         guard let requester = await identity.requester(discordId: requesterId, name: name) else { return nil }
         let now = Date()
         let recent = (replies[requesterId] ?? []).filter { now.timeIntervalSince($0) < 3600 }
