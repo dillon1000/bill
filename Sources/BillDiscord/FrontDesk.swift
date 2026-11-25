@@ -123,7 +123,7 @@ public actor FrontDesk {
         pending[key] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
-            await self?.answer(channel: channel, place: place, requesterId: requesterId, name: name)
+            await self?.answer(key: key, channel: channel, place: place, requesterId: requesterId, name: name)
         }
     }
 
@@ -152,7 +152,10 @@ public actor FrontDesk {
         return try await reply(channel: channel, place: place, requesterId: requesterId, name: user.global_name ?? user.username, limited: false)
     }
 
-    func answer(channel: String, place: Place, requesterId: String, name: String) async {
+    func answer(key: String, channel: String, place: Place, requesterId: String, name: String) async {
+        // Still uncancelled, so still the queued task: it stops being one a triggered reply can cancel.
+        guard !Task.isCancelled else { return }
+        pending[key] = nil
         do {
             _ = try await reply(channel: channel, place: place, requesterId: requesterId, name: name, limited: true)
         } catch {
