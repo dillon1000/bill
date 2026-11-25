@@ -23,7 +23,7 @@ public func billRoutes(_ app: Application, bill: Bill, token: String, respond: (
         app.post("v1", "channels", ":channel", "respond") { req async throws -> Reply in
             guard let given = req.headers.bearerAuthorization?.token, constantTimeEquals(given, token) else { throw Abort(.unauthorized) }
             guard let channel = req.parameters.get("channel"), !channel.isEmpty, channel.count <= 25, channel.allSatisfy(\.isNumber) else { throw Abort(.badRequest) }
-            guard let reply = try await respond(channel) else { throw Abort(.notFound, reason: "Bill doesn't answer in that channel, or not for that person.") }
+            guard let reply = try await respond(channel) else { throw Abort(.notFound, reason: "Bill doesn't answer in that channel or for that person, or it's answering there already.") }
             return reply
         }
     }
