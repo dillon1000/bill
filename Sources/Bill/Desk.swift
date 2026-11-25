@@ -34,7 +34,7 @@ public struct DeskPlugin: Plugin {
                 .typed(
                     "hand_off",
                     description:
-                        "Hand the conversation to a human on the support team. Use it when the person asks for a human, when refunds, billing disputes, unexplained charges, bans, appeals, data deletion, legal or security matters come up, when you're unsure, or when you couldn't solve it after trying. After this, stop and tell the person a human will follow up.",
+                        "Hand the conversation to a person on the support team, only for what no tool lets you do: refunds, credits, billing disputes, charges the account data doesn't explain, bans, sanctions, appeals, account recovery, data deletion, legal or security matters; when the person still wants a human after you've offered to help; or when you're stuck after using every tool you have. Not for being unsure: look it up or ask the person first. After this, tell the person what happens next and stop.",
                     schema: Schema.object([
                         "reason": Schema.string("For staff: what the person needs, what you checked and what you found.", maxLength: 2000),
                         "priority": Schema.oneOf(Priority.allCases.map(\.rawValue), "urgent only for outages, security or data loss"),
