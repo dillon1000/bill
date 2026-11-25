@@ -134,11 +134,34 @@ public actor FrontDesk {
         return entry
     }
 
+    /// Answers a ticket channel or DM now, whatever the ticket's state, as when staff ask Bill to pick it up. Nil when the channel is neither, or Bill doesn't answer its requester.
+    public func respond(inChannel channel: String) async throws -> Reply? {
+        if me == nil { me = try? await client.getOwnUser().decode().id.rawValue }
+        let place: Place, requesterId: String
+        if let ticket = await tickets.ticket(channel: channel) {
+            (place, requesterId) = (.ticket(ticket), ticket.openerDiscordId)
+        } else if let c = try? await client.getChannel(id: ChannelSnowflake(channel)).decode(), c.type == .dm, let recipient = c.recipients?.first {
+            (place, requesterId) = (.dm, recipient.id.rawValue)
+        } else {
+            return nil
+        }
+        let user = try await client.getUser(id: UserSnowflake(requesterId)).decode()
+        return try await reply(channel: channel, place: place, requesterId: requesterId, name: user.global_name ?? user.username, limited: false)
+    }
+
     func answer(channel: String, place: Place, requesterId: String, name: String) async {
-        guard let requester = await identity.requester(discordId: requesterId, name: name) else { return }
+        do {
+            _ = try await reply(channel: channel, place: place, requesterId: requesterId, name: name, limited: true)
+        } catch {
+            logger.error("Bill couldn't answer in \(channel): \(error)")
+        }
+    }
+
+    func reply(channel: String, place: Place, requesterId: String, name: String, limited: Bool) async throws -> Reply? {
+        guard let requester = await identity.requester(discordId: requesterId, name: name) else { return nil }
         let now = Date()
         let recent = (replies[requesterId] ?? []).filter { now.timeIntervalSince($0) < 3600 }
-        guard recent.count < settings.hourlyLimit else { return }
+        guard !limited || recent.count < settings.hourlyLimit else { return nil }
         replies[requesterId] = recent + [now]
 
         let surface: Surface, ticket: String?, replyTo: String?
@@ -155,25 +178,22 @@ public actor FrontDesk {
             }
         }
         defer { typing.cancel() }
-        do {
-            let turns = try await history(channel: channel, requesterId: requesterId, surface: surface)
-            let reply = try await bill.respond(to: Conversation(id: "discord:\(channel)", surface: surface, requester: requester, turns: turns, ticket: ticket))
-            if reply.handedOff { quiet[channel] = Date().addingTimeInterval(86400) }
-            let ping = reply.handedOff ? settings.handOffRole : nil
-            for (index, chunk) in FrontDesk.chunks(reply.text).enumerated() {
-                let content = index == 0 && ping != nil ? "<@&\(ping!)> \(chunk)" : chunk
-                try await client.createMessage(
-                    channelId: ChannelSnowflake(channel),
-                    payload: .init(
-                        content: content,
-                        allowed_mentions: .init(parse: [], roles: ping.map { [RoleSnowflake($0)] } ?? []),
-                        message_reference: index == 0 ? replyTo.map { .init(message_id: MessageSnowflake($0), fail_if_not_exists: false) } : nil
-                    )
-                ).guardSuccess()
-            }
-        } catch {
-            logger.error("Bill couldn't answer in \(channel): \(error)")
+        let turns = try await history(channel: channel, requesterId: requesterId, surface: surface)
+        let reply = try await bill.respond(to: Conversation(id: "discord:\(channel)", surface: surface, requester: requester, turns: turns, ticket: ticket))
+        if reply.handedOff { quiet[channel] = Date().addingTimeInterval(86400) }
+        let ping = reply.handedOff ? settings.handOffRole : nil
+        for (index, chunk) in FrontDesk.chunks(reply.text).enumerated() {
+            let content = index == 0 && ping != nil ? "<@&\(ping!)> \(chunk)" : chunk
+            try await client.createMessage(
+                channelId: ChannelSnowflake(channel),
+                payload: .init(
+                    content: content,
+                    allowed_mentions: .init(parse: [], roles: ping.map { [RoleSnowflake($0)] } ?? []),
+                    message_reference: index == 0 ? replyTo.map { .init(message_id: MessageSnowflake($0), fail_if_not_exists: false) } : nil
+                )
+            ).guardSuccess()
         }
+        return reply
     }
 
     /// The channel's recent messages, oldest first.

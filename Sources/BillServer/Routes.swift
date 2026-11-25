@@ -15,9 +15,18 @@ public struct ChatRequest: Content {
     public var messages: [Message]
 }
 
-/// Registers `GET /health` and `POST /v1/chat`. Only a caller holding `token` reaches chat, and it vouches for `accountId`.
-public func billRoutes(_ app: Application, bill: Bill, token: String) {
+/// Registers `GET /health`, `POST /v1/chat` and, given `respond` (such as `FrontDesk.respond(inChannel:)`), `POST /v1/channels/:channel/respond`
+/// for staff to have Bill answer a conversation now. Only a caller holding `token` reaches either, and it vouches for `accountId`.
+public func billRoutes(_ app: Application, bill: Bill, token: String, respond: (@Sendable (String) async throws -> Reply?)? = nil) {
     app.get("health") { _ in "ok" }
+    if let respond {
+        app.post("v1", "channels", ":channel", "respond") { req async throws -> Reply in
+            guard let given = req.headers.bearerAuthorization?.token, constantTimeEquals(given, token) else { throw Abort(.unauthorized) }
+            guard let channel = req.parameters.get("channel"), !channel.isEmpty, channel.count <= 25, channel.allSatisfy(\.isNumber) else { throw Abort(.badRequest) }
+            guard let reply = try await respond(channel) else { throw Abort(.notFound, reason: "Bill doesn't answer in that channel, or not for that person.") }
+            return reply
+        }
+    }
     app.on(.POST, "v1", "chat", body: .collect(maxSize: "256kb")) { req async throws -> Reply in
         guard let given = req.headers.bearerAuthorization?.token, constantTimeEquals(given, token) else { throw Abort(.unauthorized) }
         let chat = try req.content.decode(ChatRequest.self)
