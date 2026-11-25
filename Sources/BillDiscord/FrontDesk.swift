@@ -123,7 +123,7 @@ public actor FrontDesk {
         pending[key] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
-            await self?.answer(key: key, channel: channel, place: place, requesterId: requesterId, name: name)
+            await self?.answer(channel: channel, place: place, requesterId: requesterId, name: name)
         }
     }
 
@@ -138,6 +138,7 @@ public actor FrontDesk {
     /// Answers a ticket channel or DM now, whatever the ticket's state, as when staff ask Bill to pick it up, in place of any answer still waiting for
     /// the requester to finish typing. Nil when the channel is neither, Bill doesn't answer its requester, or it's already answering there.
     public func respond(inChannel channel: String) async throws -> Reply? {
+        guard !answering.contains(channel) else { return nil }
         pending.removeValue(forKey: channel)?.cancel()
         if me == nil { me = try? await client.getOwnUser().decode().id.rawValue }
         let place: Place, requesterId: String
@@ -152,10 +153,7 @@ public actor FrontDesk {
         return try await reply(channel: channel, place: place, requesterId: requesterId, name: user.global_name ?? user.username, limited: false)
     }
 
-    func answer(key: String, channel: String, place: Place, requesterId: String, name: String) async {
-        // Still uncancelled, so still the queued task: it stops being one a triggered reply can cancel.
-        guard !Task.isCancelled else { return }
-        pending[key] = nil
+    func answer(channel: String, place: Place, requesterId: String, name: String) async {
         do {
             _ = try await reply(channel: channel, place: place, requesterId: requesterId, name: name, limited: true)
         } catch {
