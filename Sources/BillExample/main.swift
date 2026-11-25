@@ -47,7 +47,7 @@ let desk = FrontDesk(
     ),
     tickets: NoTickets(), identity: DiscordOnlyIdentity(), logger: app.logger
 )
-billRoutes(app, bill: bill, token: try env("BILL_TOKEN"))
+billRoutes(app, bill: bill, token: try env("BILL_TOKEN"), respond: { try await desk.respond(inChannel: $0) })
 
 Task {
     await gateway.connect()

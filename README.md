@@ -11,8 +11,8 @@ Built for [Buildcord](https://buildcord.dev), and written to be used by anyone.
 | `BillAI` | A Swift port of the [Vercel AI SDK](https://ai-sdk.dev)'s core: `generateText` with a tool loop, `stopWhen` (`stepCountIs`, `hasToolCall`), `prepareStep`, `onStepFinish`, typed tools with JSON Schema, tool errors returned to the model, `pruneMessages`, and an OpenAI-compatible provider (OpenRouter by default). |
 | `Bill` | The agent: the hard system prompt, scopes and policy, plugins, the help desk interface, secret redaction, the audit log (JSON lines or Postgres), and a docs plugin for any site with an `llms-full.txt`. |
 | `BillGitHub` | A GitHub App narrowed to one repository: code search, file reads, directory listings, recent commits, pull requests and issues, and filing issues. Paths such as `.env`, keys and workflows are always off limits, plus any you add. |
-| `BillDiscord` | The front desk: answers in tickets, forum posts, DMs and @mentions (replying to the message), waits for a burst of messages to finish, shows typing, splits long replies, never mentions anyone but the hand-off role, and limits replies per person per hour. |
-| `BillServer` | `GET /health` and `POST /v1/chat`, for your product to call on behalf of a signed-in person. |
+| `BillDiscord` | The front desk: answers in tickets, forum posts, DMs and @mentions (replying to the message), waits for a burst of messages to finish, shows typing, splits long replies, never mentions anyone but the hand-off role, and limits replies per person per hour. `respond(inChannel:)` answers a ticket or DM on demand, for staff to bring Bill back in. |
+| `BillServer` | `GET /health` and `POST /v1/chat`, for your product to call on behalf of a signed-in person, and `POST /v1/channels/:channel/respond` for staff to have Bill answer a ticket or DM now. |
 | `bill` | A complete example that runs all of the above. |
 
 ## Least privilege
