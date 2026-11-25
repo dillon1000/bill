@@ -186,6 +186,7 @@ public actor FrontDesk {
         defer { typing.cancel() }
         let turns = try await history(channel: channel, requesterId: requesterId, surface: surface)
         let reply = try await bill.respond(to: Conversation(id: "discord:\(channel)", surface: surface, requester: requester, turns: turns, ticket: ticket))
+        if reply.handedOff { quiet[channel] = Date().addingTimeInterval(86400) }
         let ping = reply.handedOff ? settings.handOffRole : nil
         for (index, chunk) in FrontDesk.chunks(reply.text).enumerated() {
             let content = index == 0 && ping != nil ? "<@&\(ping!)> \(chunk)" : chunk
@@ -198,7 +199,6 @@ public actor FrontDesk {
                 )
             ).guardSuccess()
         }
-        if reply.handedOff { quiet[channel] = Date().addingTimeInterval(86400) }
         return reply
     }
 
